@@ -10,7 +10,7 @@ from .forms import (
     FishSchoolForm, ReportFilterForm, ComprehensiveFilterForm,
     SimulationForm, FishMigrationFilterForm
 )
-from .services.harvest_estimator import (
+from .services import (
     get_monthly_trend, get_gate_strategy_comparison,
     recalculate_estimates, recalculate_all_estimates,
     get_comprehensive_analysis, get_seasonal_analysis,
@@ -20,9 +20,7 @@ from .services.harvest_estimator import (
     simulate_multiple_strategies, get_typical_gate_configs,
     get_traditional_fishing_calendar, get_strategy_heatmap_data,
     get_multi_dimensional_comparison, get_comprehensive_strategy_analysis,
-    reconstruct_historical_operation, get_historical_operation_patterns
-)
-from .services.fish_migration_analyzer import (
+    reconstruct_historical_operation, get_historical_operation_patterns,
     get_comprehensive_migration_analysis,
     get_available_fish_species
 )
