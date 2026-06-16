@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load weir_filters %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">模拟推演设置</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" class="filter-form comprehensive-filter" id="simulationForm">
+                {% csrf_token %}
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>{{ form.weir.label }}</label>
+                        {{ form.weir }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ form.simulation_mode.label }}</label>
+                        {{ form.simulation_mode }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ form.simulation_date.label }}</label>
+                        {{ form.simulation_date }}
+                    </div>
+                </div>
+
+                <div class="filter-section" id="hydrologySection">
+                    <h4>水文条件设置</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>{{ form.water_level.label }}</label>
+                            {{ form.water_level }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ form.flow_rate.label }}</label>
+                            {{ form.flow_rate }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ form.weather.label }}</label>
+                            {{ form.weather }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ form.historical_period.label }}</label>
+                            {{ form.historical_period }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section" id="singleStrategySection">
+                    <h4>闸口策略设置</h4>
+                    <div class="filter-row">
+                        <div class="filter-group" style="flex: 2;">
+                            <label>{{ form.gate_config.label }}</label>
+                            {{ form.gate_config }}
+                        </div>
+                    </div>
+                    {% if typical_configs %}
+                    <div class="filter-group">
+                        <label>典型策略推荐（点击填入）</label>
+                        <div class="typical-configs">
+                            {% for config in typical_configs %}
+                                <button type="button" class="btn btn-sm btn-secondary typical-config-btn" data-config="{{ config.config }}">
+                                    {{ config.config|truncatechars:25 }}
+                                    <span class="badge badge-accent">{{ config.avg_efficiency }}kg/天</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="filter-section" id="multiStrategySection" style="display: none;">
+                    <h4>多策略对比设置</h4>
+                    <div class="filter-group">
+                        <label>对比策略列表（每行一个策略）</label>
+                        <textarea name="additional_strategies" class="form-control" rows="6" placeholder="每行输入一个闸口策略，如：&#10;G-1开,G-2关&#10;G-1关,G-2开&#10;G-1开,G-2开"></textarea>
+                        <small class="form-text">系统将自动对比这些策略的预估收获</small>
+                    </div>
+                    {% if typical_configs %}
+                    <div class="filter-group">
+                        <label>快速添加典型策略</label>
+                        <div class="typical-configs">
+                            {% for config in typical_configs %}
+                                <button type="button" class="btn btn-sm btn-secondary typical-config-multi" data-config="{{ config.config }}">
+                                    + {{ config.config|truncatechars:20 }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>🔮</span> 开始推演
+                    </button>
+                    <a href="{% url 'report_simulation' %}" class="btn btn-secondary">重置</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if fishing_calendar %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📅 传统渔猎日历 - {{ selected_weir.name }}</h3>
+        </div>
+        <div class="card-body">
+            <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                {% for season in fishing_calendar %}
+                <div class="stat-card {% if season.avg_efficiency >= 15 %}accent{% elif season.avg_efficiency >= 10 %}info{% endif %}">
+                    <div class="stat-icon">
+                        {% if season.season_code == 'spring' %}🌸{% elif season.season_code == 'summer' %}☀️{% elif season.season_code == 'autumn' %}🍂{% else %}❄️{% endif %}
+                    </div>
+                    <div class="stat-value">{{ season.avg_efficiency }} kg/天</div>
+                    <div class="stat-label">{{ season.season }}</div>
+                    <div class="detail-grid" style="margin-top: 16px;">
+                        <div class="detail-item" style="border-left-color: var(--primary-color);">
+                            <div class="label">平均水位</div>
+                            <div class="value">{{ season.avg_water_level }} 米</div>
+                        </div>
+                        <div class="detail-item" style="border-left-color: var(--accent-color);">
+                            <div class="label">平均流速</div>
+                            <div class="value">{{ season.avg_flow_rate }} m/s</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; line-height: 1.5;">
+                        {{ season.recommendation }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if simulation_result %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 单策略模拟结果</h3>
+        </div>
+        <div class="card-body">
+            <div class="summary-row">
+                <div class="summary-item">
+                    <div class="value">{{ simulation_result.estimated_weight }} 公斤</div>
+                    <div class="label">预估收获</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value">{{ simulation_result.confidence }}%</div>
+                    <div class="label">置信度</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value">{{ simulation_result.similar_records_count }} 条</div>
+                    <div class="label">相似历史记录</div>
+                </div>
+            </div>
+
+            <div class="card-grid" style="margin-top: 24px;">
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-header">
+                    <h3 class="card-title">模拟条件</h3>
+                </div>
+                <div class="card-body">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="label">季节</div>
+                            <div class="value">{{ simulation_result.conditions.season }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">月份</div>
+                            <div class="value">{{ simulation_result.conditions.month }}月</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">水位</div>
+                            <div class="value">{{ simulation_result.conditions.water_level }} 米</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">流速</div>
+                            <div class="value">{{ simulation_result.conditions.flow_rate }} m/s</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">天气</div>
+                            <div class="value">{{ simulation_result.conditions.weather }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">闸口策略</div>
+                            <div class="value">{{ simulation_result.conditions.gate_config }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-header">
+                    <h3 class="card-title">影响因子分析</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="factorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if simulation_result.similar_records %}
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h3 class="card-title">相似历史记录参考</h3>
+            </div>
+            <div class="card-body">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>水位(米)</th>
+                            <th>流速(m/s)</th>
+                            <th>天气</th>
+                            <th>实际收获(公斤)</th>
+                            <th>闸口策略</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in simulation_result.similar_records %}
+                        <tr>
+                            <td>{{ record.date }}</td>
+                            <td>{{ record.water_level }}</td>
+                            <td>{{ record.flow_rate }}</td>
+                            <td>{{ record.weather }}</td>
+                            <td>{{ record.weight }}</td>
+                            <td>{{ record.strategy }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {% if multi_strategy_results %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🏆 多策略对比结果</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="multiStrategyChart"></canvas>
+            </div>
+
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #ffc107;"></span>
+                    <span>预估收获</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #1e3a5f;"></span>
+                    <span>置信度</span>
+                </div>
+            </div>
+
+            <table class="data-table" style="margin-top: 24px;">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>闸口策略</th>
+                        <th>预估收获(公斤)</th>
+                        <th>与最优策略差距(公斤)</th>
+                        <th>置信度(%)</th>
+                        <th>相似记录数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in multi_strategy_results %}
+                    <tr>
+                        <td>
+                            {% if result.rank == 1 %}
+                            <span class="badge badge-gold">🥇 第{{ result.rank }}名</span>
+                            {% elif result.rank == 2 %}
+                            <span class="badge badge-silver">🥈 第{{ result.rank }}名</span>
+                            {% elif result.rank == 3 %}
+                            <span class="badge badge-bronze">🥉 第{{ result.rank }}名</span>
+                            {% else %}
+                            <span class="badge badge-secondary">第{{ result.rank }}名</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ result.strategy }}</strong></td>
+                        <td>
+                            <span class="badge badge-primary">{{ result.estimated_weight }}</span>
+                        </td>
+                        <td>
+                            {% if result.advantage > 0 %}
+                            <span class="badge badge-warning">-{{ result.advantage }}</span>
+                            {% else %}
+                            <span class="badge badge-success">最优</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ result.confidence }}%</td>
+                        <td>{{ result.similar_records_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📈 各策略影响因子对比</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="factorComparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if historical_reconstruction %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">⏳ 历史作业复原 - {{ historical_reconstruction.date }}</h3>
+        </div>
+        <div class="card-body">
+            <div class="summary-row">
+                <div class="summary-item">
+                    <div class="value">{{ historical_reconstruction.season }}</div>
+                    <div class="label">季节</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value">{{ historical_reconstruction.actual_harvest }} 公斤</div>
+                    <div class="label">实际收获</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value">
+                        {% if historical_reconstruction.reconstructed_estimate %}
+                        {{ historical_reconstruction.reconstructed_estimate.estimated_weight }} 公斤
+                        {% else %}
+                        -
+                        {% endif %}
+                    </div>
+                    <div class="label">复原估算</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value">
+                        {% if historical_reconstruction.reconstruction_accuracy %}
+                        {{ historical_reconstruction.reconstruction_accuracy }}%
+                        {% else %}
+                        -
+                        {% endif %}
+                    </div>
+                    <div class="label">复原准确率</div>
+                </div>
+            </div>
+
+            <div class="card-grid" style="margin-top: 24px;">
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-header">
+                        <h3 class="card-title">当日环境条件</h3>
+                    </div>
+                    <div class="card-body">
+                        {% if historical_reconstruction.water_level %}
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="label">水位</div>
+                                <div class="value">{{ historical_reconstruction.water_level.water_level }} 米</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="label">流速</div>
+                                <div class="value">{{ historical_reconstruction.water_level.flow_rate }} m/s</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="label">天气</div>
+                                <div class="value">{{ historical_reconstruction.water_level.weather }}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="label">闸口策略</div>
+                                <div class="value">{{ historical_reconstruction.gate_strategy }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📊</div>
+                            <h3>暂无当日水位记录</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-header">
+                        <h3 class="card-title">当日鱼群观测</h3>
+                    </div>
+                    <div class="card-body">
+                        {% if historical_reconstruction.fish_schools %}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>鱼种</th>
+                                    <th>数量</th>
+                                    <th>方向</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fs in historical_reconstruction.fish_schools %}
+                                <tr>
+                                    <td>{{ fs.observe_time }}</td>
+                                    <td>{{ fs.fish_type }}</td>
+                                    <td>{{ fs.estimated_count }}</td>
+                                    <td>{{ fs.get_direction_display }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🐟</div>
+                            <h3>当日无鱼群观测记录</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if historical_reconstruction.estimate %}
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <h3 class="card-title">当日估算记录</h3>
+                </div>
+                <div class="card-body">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="label">估算收获</div>
+                            <div class="value">{{ historical_reconstruction.estimate.estimated_weight }} 公斤</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">实际收获</div>
+                            <div class="value">{{ historical_reconstruction.estimate.actual_weight }} 公斤</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">估算准确率</div>
+                            <div class="value">
+                                {% if historical_reconstruction.estimate.accuracy %}
+                                {{ historical_reconstruction.estimate.accuracy }}%
+                                {% else %}
+                                -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">闸口策略</div>
+                            <div class="value">{{ historical_reconstruction.estimate.gate_strategy }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if historical_reconstruction.reconstructed_estimate %}
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <h3 class="card-title">🔬 复原推演因子分析</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="reconstructFactorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if operation_patterns %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📜 历史作业模式演变</h3>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                {% for pattern in operation_patterns %}
+                <div class="timeline-item">
+                    <div class="timeline-date">{{ pattern.month }}</div>
+                    <div class="timeline-content">
+                        <strong>主要配置：</strong>
+                        {% for config, percent in pattern.configs.items|slice:":3" %}
+                        <span class="badge badge-info">{{ config }} ({{ percent }}%)</span>
+                        {% endfor %}
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                            本月共 {{ pattern.total_changes }} 次闸口调整
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const simulationMode = document.getElementById('simulation_mode');
+            const singleSection = document.getElementById('singleStrategySection');
+            const multiSection = document.getElementById('multiStrategySection');
+            const gateConfigInput = document.querySelector('[name="gate_config"]');
+            const additionalStrategies = document.querySelector('[name="additional_strategies"]');
+
+            function updateFormVisibility() {
+                const mode = simulationMode.value;
+                if (mode === 'single') {
+                    singleSection.style.display = 'block';
+                    multiSection.style.display = 'none';
+                    gateConfigInput.required = true;
+                } else if (mode === 'multi') {
+                    singleSection.style.display = 'block';
+                    multiSection.style.display = 'block';
+                    gateConfigInput.required = false;
+                } else if (mode === 'reconstruct') {
+                    singleSection.style.display = 'none';
+                    multiSection.style.display = 'none';
+                    gateConfigInput.required = false;
+                }
+            }
+
+            simulationMode.addEventListener('change', updateFormVisibility);
+            updateFormVisibility();
+
+            document.querySelectorAll('.typical-config-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const config = this.getAttribute('data-config');
+                    document.querySelector('[name="gate_config"]').value = config;
+                });
+            });
+
+            document.querySelectorAll('.typical-config-multi').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const config = this.getAttribute('data-config');
+                    const textarea = document.querySelector('[name="additional_strategies"]');
+                    const currentValue = textarea.value.trim();
+                    if (currentValue && !currentValue.endsWith('\n')) {
+                        textarea.value = currentValue + '\n' + config + '\n';
+                    } else {
+                        textarea.value = currentValue + config + '\n';
+                    }
+                });
+            });
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                        titleFont: { family: "'Noto Sans SC', sans-serif", size: 14 },
+                        bodyFont: { family: "'Noto Sans SC', sans-serif", size: 13 },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    }
+                }
+            };
+
+            {% if simulation_result %}
+            const factorLabels = ['季节因子', '水位因子', '天气因子', '闸口效率'];
+            const factorData = [
+                {{ simulation_result.factors.season_factor }},
+                {{ simulation_result.factors.water_factor }},
+                {{ simulation_result.factors.weather_factor }},
+                {{ simulation_result.factors.gate_efficiency_factor }}
+            ];
+            
+            new Chart(document.getElementById('factorChart'), {
+                type: 'bar',
+                data: {
+                    labels: factorLabels,
+                    datasets: [{
+                        label: '影响因子',
+                        data: factorData,
+                        backgroundColor: [
+                            'rgba(46, 125, 50, 0.7)',
+                            'rgba(30, 58, 95, 0.7)',
+                            'rgba(156, 39, 176, 0.7)',
+                            'rgba(201, 162, 39, 0.7)'
+                        ],
+                        borderColor: [
+                            '#2e7d32', '#1e3a5f', '#9c27b0', '#c9a227'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: chartOptions
+            });
+            {% endif %}
+
+            {% if multi_strategy_results %}
+            const strategyLabels = {{ multi_strategy_results|dictsort:"rank"|pluck:"strategy"|safe }};
+            const strategyWeights = {{ multi_strategy_results|dictsort:"rank"|pluck:"estimated_weight"|safe }};
+            const strategyConfidence = {{ multi_strategy_results|dictsort:"rank"|pluck:"confidence"|safe }};
+
+            new Chart(document.getElementById('multiStrategyChart'), {
+                type: 'bar',
+                data: {
+                    labels: strategyLabels.map(s => s.length > 15 ? s.substring(0, 15) + '...' : s),
+                    datasets: [
+                        {
+                            label: '预估收获(公斤)',
+                            data: strategyWeights,
+                            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                            borderColor: '#ffc107',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '置信度(%)',
+                            data: strategyConfidence,
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: { ...chartOptions.plugins, legend: { display: true } },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ...chartOptions.scales.y
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            max: 100,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                callback: function(value) { return value + '%'; },
+                                font: { family: "'Noto Sans SC', sans-serif", size: 11 }
+                            }
+                        },
+                        x: chartOptions.scales.x
+                    }
+                }
+            });
+
+            const factorComparisonLabels = ['季节因子', '水位因子', '天气因子', '闸口效率'];
+            const factorDatasets = [];
+            const factorColors = [
+                'rgba(255, 193, 7, 0.7)',
+                'rgba(192, 192, 192, 0.7)',
+                'rgba(205, 127, 50, 0.7)',
+                'rgba(30, 58, 95, 0.7)',
+                'rgba(46, 125, 50, 0.7)'
+            ];
+
+            {% for result in multi_strategy_results %}
+            factorDatasets.push({
+                label: '{{ result.strategy|truncatechars:20 }}',
+                data: [
+                    {{ result.factors.season_factor }},
+                    {{ result.factors.water_factor }},
+                    {{ result.factors.weather_factor }},
+                    {{ result.factors.gate_efficiency_factor }}
+                ],
+                backgroundColor: factorColors[{{ forloop.counter0 }}],
+                borderColor: factorColors[{{ forloop.counter0 }}].replace('0.7', '1'),
+                borderWidth: 2,
+                borderRadius: 6
+            });
+            {% endfor %}
+
+            new Chart(document.getElementById('factorComparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels: factorComparisonLabels,
+                    datasets: factorDatasets
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'bottom' }
+                    }
+                }
+            });
+            {% endif %}
+
+            {% if historical_reconstruction and historical_reconstruction.reconstructed_estimate %}
+            const reconstructFactorLabels = ['季节因子', '水位因子', '天气因子', '闸口效率'];
+            const reconstructFactorData = [
+                {{ historical_reconstruction.reconstructed_estimate.factors.season_factor }},
+                {{ historical_reconstruction.reconstructed_estimate.factors.water_factor }},
+                {{ historical_reconstruction.reconstructed_estimate.factors.weather_factor }},
+                {{ historical_reconstruction.reconstructed_estimate.factors.gate_efficiency_factor }}
+            ];
+
+            new Chart(document.getElementById('reconstructFactorChart'), {
+                type: 'bar',
+                data: {
+                    labels: reconstructFactorLabels,
+                    datasets: [{
+                        label: '影响因子',
+                        data: reconstructFactorData,
+                        backgroundColor: [
+                            'rgba(46, 125, 50, 0.7)',
+                            'rgba(30, 58, 95, 0.7)',
+                            'rgba(156, 39, 176, 0.7)',
+                            'rgba(201, 162, 39, 0.7)'
+                        ],
+                        borderColor: [
+                            '#2e7d32', '#1e3a5f', '#9c27b0', '#c9a227'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: chartOptions
+            });
+            {% endif %}
+        });
+    </script>
+{% endblock %}

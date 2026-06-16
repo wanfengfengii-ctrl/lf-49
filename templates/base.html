@@ -81,6 +81,28 @@
                         </a>
                     </li>
                 </ul>
+
+                <div class="nav-section-title">联合分析中心</div>
+                <ul>
+                    <li>
+                        <a href="{% url 'report_comprehensive_analysis' %}" class="nav-item {% if 'comprehensive_analysis' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🔬</span>
+                            <span>综合筛选分析</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'report_strategy_comparison' %}" class="nav-item {% if 'strategy_comparison' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🏆</span>
+                            <span>策略联合对比</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'report_simulation' %}" class="nav-item {% if 'simulation' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🔮</span>
+                            <span>历史作业推演</span>
+                        </a>
+                    </li>
+                </ul>
             </nav>
             
             <div class="sidebar-footer">

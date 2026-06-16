@@ -27,6 +27,9 @@ urlpatterns = [
     path('reports/monthly-trend/', views.report_monthly_trend, name='report_monthly_trend'),
     path('reports/gate-comparison/', views.report_gate_comparison, name='report_gate_comparison'),
     path('reports/efficiency/', views.report_efficiency, name='report_efficiency'),
+    path('reports/comprehensive-analysis/', views.report_comprehensive_analysis, name='report_comprehensive_analysis'),
+    path('reports/strategy-comparison/', views.report_strategy_comparison, name='report_strategy_comparison'),
+    path('reports/simulation/', views.report_simulation, name='report_simulation'),
     path('recalculate-estimates/', views.recalculate_estimates_view, name='recalculate_all_estimates'),
     path('recalculate-estimates/<int:weir_id>/', views.recalculate_estimates_view, name='recalculate_estimates'),
 ]

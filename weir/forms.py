@@ -142,3 +142,155 @@ class ReportFilterForm(forms.Form):
         label='结束日期',
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
     )
+
+
+SEASON_CHOICES = [
+    ('spring', '春季（3-5月）'),
+    ('summer', '夏季（6-8月）'),
+    ('autumn', '秋季（9-11月）'),
+    ('winter', '冬季（12-2月）'),
+]
+
+MONTH_CHOICES = [
+    (1, '1月'), (2, '2月'), (3, '3月'), (4, '4月'),
+    (5, '5月'), (6, '6月'), (7, '7月'), (8, '8月'),
+    (9, '9月'), (10, '10月'), (11, '11月'), (12, '12月'),
+]
+
+WEATHER_CHOICES = [
+    ('晴', '晴'), ('多云', '多云'), ('阴', '阴'),
+    ('小雨', '小雨'), ('中雨', '中雨'), ('大雨', '大雨'),
+    ('暴雨', '暴雨'), ('雪', '雪'), ('雾', '雾'),
+]
+
+GATE_STATUS_CHOICES = [
+    ('open', '开启'),
+    ('closed', '关闭'),
+]
+
+
+class ComprehensiveFilterForm(forms.Form):
+    weir = forms.ModelChoiceField(
+        queryset=Weir.objects.all(),
+        required=False,
+        label='选择鱼梁',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    season = forms.MultipleChoiceField(
+        choices=SEASON_CHOICES,
+        required=False,
+        label='季节',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    months = forms.MultipleChoiceField(
+        choices=MONTH_CHOICES,
+        required=False,
+        label='月份',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    start_date = forms.DateField(
+        required=False,
+        label='开始日期',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='结束日期',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    water_level_min = forms.FloatField(
+        required=False,
+        label='最低水位(米)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    water_level_max = forms.FloatField(
+        required=False,
+        label='最高水位(米)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    flow_rate_min = forms.FloatField(
+        required=False,
+        label='最低流速(m/s)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    flow_rate_max = forms.FloatField(
+        required=False,
+        label='最高流速(m/s)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    weather = forms.MultipleChoiceField(
+        choices=WEATHER_CHOICES,
+        required=False,
+        label='天气状况',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    gate_strategy = forms.CharField(
+        required=False,
+        label='闸口策略（如：G-1开,G-2关）',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '可选，精确匹配闸口策略组合'})
+    )
+    gate_status = forms.ChoiceField(
+        choices=[('', '全部')] + GATE_STATUS_CHOICES,
+        required=False,
+        label='闸口状态',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+
+SIMULATION_MODE_CHOICES = [
+    ('single', '单策略模拟'),
+    ('multi', '多策略对比'),
+    ('reconstruct', '历史作业复原'),
+]
+
+
+class SimulationForm(forms.Form):
+    weir = forms.ModelChoiceField(
+        queryset=Weir.objects.all(),
+        required=True,
+        label='选择鱼梁',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    simulation_mode = forms.ChoiceField(
+        choices=SIMULATION_MODE_CHOICES,
+        required=True,
+        label='模拟模式',
+        initial='single',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'simulation_mode'})
+    )
+    simulation_date = forms.DateField(
+        required=True,
+        label='模拟日期',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    water_level = forms.FloatField(
+        required=True,
+        label='模拟水位(米)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    flow_rate = forms.FloatField(
+        required=True,
+        label='模拟流速(m/s)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    weather = forms.ChoiceField(
+        choices=WEATHER_CHOICES,
+        required=True,
+        label='天气状况',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    gate_config = forms.CharField(
+        required=False,
+        label='闸口配置（如：G-1开,G-2关）',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '请输入闸口策略组合'})
+    )
+    historical_period = forms.ChoiceField(
+        choices=[
+            ('recent', '近年模式（近5年数据）'),
+            ('traditional', '传统模式（1980-2000年）'),
+            ('all', '全数据模式'),
+        ],
+        required=True,
+        label='历史参照模式',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )

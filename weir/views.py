@@ -7,11 +7,19 @@ import json
 from .models import Weir, WaterLevel, GateStatus, HarvestRecord, FishSchool, HarvestEstimate
 from .forms import (
     WeirForm, WaterLevelForm, GateStatusForm, HarvestRecordForm,
-    FishSchoolForm, ReportFilterForm
+    FishSchoolForm, ReportFilterForm, ComprehensiveFilterForm, SimulationForm
 )
 from .services.harvest_estimator import (
     get_monthly_trend, get_gate_strategy_comparison,
-    recalculate_estimates, recalculate_all_estimates
+    recalculate_estimates, recalculate_all_estimates,
+    get_comprehensive_analysis, get_seasonal_analysis,
+    get_water_level_interval_analysis, get_flow_rate_analysis,
+    get_weather_analysis, get_strategy_efficiency_comparison,
+    get_monthly_comparison, simulate_harvest,
+    simulate_multiple_strategies, get_typical_gate_configs,
+    get_traditional_fishing_calendar, get_strategy_heatmap_data,
+    get_multi_dimensional_comparison, get_comprehensive_strategy_analysis,
+    reconstruct_historical_operation, get_historical_operation_patterns
 )
 
 
@@ -509,3 +517,282 @@ def recalculate_estimates_view(request, weir_id=None):
         count = recalculate_all_estimates()
         messages.success(request, f'已重新计算所有鱼梁的收获估算，共 {len(count)} 条记录。')
         return redirect('report_efficiency')
+
+
+def report_comprehensive_analysis(request):
+    form = ComprehensiveFilterForm(request.GET or None)
+    filters = {}
+
+    if form.is_valid():
+        filters = {
+            'weir': form.cleaned_data.get('weir'),
+            'start_date': form.cleaned_data.get('start_date'),
+            'end_date': form.cleaned_data.get('end_date'),
+            'season': form.cleaned_data.get('season'),
+            'months': form.cleaned_data.get('months'),
+            'water_level_min': form.cleaned_data.get('water_level_min'),
+            'water_level_max': form.cleaned_data.get('water_level_max'),
+            'flow_rate_min': form.cleaned_data.get('flow_rate_min'),
+            'flow_rate_max': form.cleaned_data.get('flow_rate_max'),
+            'weather': form.cleaned_data.get('weather'),
+            'gate_strategy': form.cleaned_data.get('gate_strategy'),
+            'gate_status': form.cleaned_data.get('gate_status'),
+        }
+
+    summary = get_comprehensive_analysis(filters)
+    seasonal_data = get_seasonal_analysis(filters)
+    water_level_data = get_water_level_interval_analysis(filters)
+    flow_rate_data = get_flow_rate_analysis(filters)
+    weather_data = get_weather_analysis(filters)
+    monthly_data = get_monthly_comparison(filters)
+    heatmap_data = get_strategy_heatmap_data(filters)
+    multi_dim_data = get_multi_dimensional_comparison(filters)
+
+    season_labels = [d['season_name'] for d in seasonal_data]
+    season_efficiency = [d['efficiency'] for d in seasonal_data]
+    season_actual = [d['total_actual'] for d in seasonal_data]
+
+    water_labels = [d['interval'] for d in water_level_data]
+    water_efficiency = [d['efficiency'] for d in water_level_data]
+    water_actual = [d['total_actual'] for d in water_level_data]
+
+    flow_labels = [d['interval'] for d in flow_rate_data]
+    flow_efficiency = [d['efficiency'] for d in flow_rate_data]
+
+    weather_labels = [d['weather'] for d in weather_data]
+    weather_efficiency = [d['efficiency'] for d in weather_data]
+
+    month_labels = [d['month'] for d in monthly_data]
+    month_actual = [d['total_actual'] for d in monthly_data]
+    month_estimated = [d['total_estimated'] for d in monthly_data]
+
+    heatmap_seasons = list(set([d['season'] for d in heatmap_data]))
+    heatmap_water_levels = list(set([d['water_level'] for d in heatmap_data]))
+    heatmap_values = []
+    for season in heatmap_seasons:
+        row = []
+        for wl in heatmap_water_levels:
+            val = next((d['efficiency'] for d in heatmap_data if d['season'] == season and d['water_level'] == wl), 0)
+            row.append(val)
+        heatmap_values.append(row)
+
+    multi_dim_categories = list(set([d['category'] for d in multi_dim_data]))
+    multi_dim_labels = [d['group'] for d in multi_dim_data]
+    multi_dim_efficiency = [d['efficiency'] for d in multi_dim_data]
+    multi_dim_category_colors = []
+    color_map = {
+        '季节': 'rgba(46, 125, 50, 0.7)',
+        '水位区间': 'rgba(30, 58, 95, 0.7)',
+        '流速区间': 'rgba(201, 162, 39, 0.7)',
+        '天气': 'rgba(156, 39, 176, 0.7)',
+        '闸口策略': 'rgba(211, 47, 47, 0.7)',
+    }
+    for d in multi_dim_data:
+        multi_dim_category_colors.append(color_map.get(d['category'], 'rgba(100, 100, 100, 0.7)'))
+
+    context = {
+        'title': '综合筛选分析',
+        'filter_form': form,
+        'summary': summary,
+        'seasonal_data': seasonal_data,
+        'water_level_data': water_level_data,
+        'flow_rate_data': flow_rate_data,
+        'weather_data': weather_data,
+        'monthly_data': monthly_data,
+        'heatmap_data': heatmap_data,
+        'multi_dim_data': multi_dim_data,
+        'season_labels': json.dumps(season_labels),
+        'season_efficiency': json.dumps(season_efficiency),
+        'season_actual': json.dumps(season_actual),
+        'water_labels': json.dumps(water_labels),
+        'water_efficiency': json.dumps(water_efficiency),
+        'water_actual': json.dumps(water_actual),
+        'flow_labels': json.dumps(flow_labels),
+        'flow_efficiency': json.dumps(flow_efficiency),
+        'weather_labels': json.dumps(weather_labels),
+        'weather_efficiency': json.dumps(weather_efficiency),
+        'month_labels': json.dumps(month_labels),
+        'month_actual': json.dumps(month_actual),
+        'month_estimated': json.dumps(month_estimated),
+        'heatmap_seasons': json.dumps(heatmap_seasons),
+        'heatmap_water_levels': json.dumps(heatmap_water_levels),
+        'heatmap_values': json.dumps(heatmap_values),
+        'multi_dim_labels': json.dumps(multi_dim_labels),
+        'multi_dim_efficiency': json.dumps(multi_dim_efficiency),
+        'multi_dim_category_colors': json.dumps(multi_dim_category_colors),
+        'multi_dim_categories': json.dumps(multi_dim_categories),
+    }
+    return render(request, 'reports/comprehensive_analysis.html', context)
+
+
+def report_strategy_comparison(request):
+    form = ComprehensiveFilterForm(request.GET or None)
+    filters = {}
+
+    if form.is_valid():
+        filters = {
+            'weir': form.cleaned_data.get('weir'),
+            'start_date': form.cleaned_data.get('start_date'),
+            'end_date': form.cleaned_data.get('end_date'),
+            'season': form.cleaned_data.get('season'),
+            'months': form.cleaned_data.get('months'),
+            'water_level_min': form.cleaned_data.get('water_level_min'),
+            'water_level_max': form.cleaned_data.get('water_level_max'),
+            'flow_rate_min': form.cleaned_data.get('flow_rate_min'),
+            'flow_rate_max': form.cleaned_data.get('flow_rate_max'),
+            'weather': form.cleaned_data.get('weather'),
+            'gate_strategy': form.cleaned_data.get('gate_strategy'),
+            'gate_status': form.cleaned_data.get('gate_status'),
+        }
+
+    strategy_data = get_strategy_efficiency_comparison(filters)
+    comprehensive_analysis = get_comprehensive_strategy_analysis(filters)
+
+    strategy_labels = []
+    for d in strategy_data:
+        label = d['strategy'][:15] + '...' if len(d['strategy']) > 15 else d['strategy']
+        strategy_labels.append(label)
+
+    strategy_efficiency = [d['efficiency'] for d in strategy_data]
+    strategy_actual = [d['avg_actual'] if 'avg_actual' in d else d['total_actual'] / d['count'] if d['count'] > 0 else 0 for d in strategy_data]
+    strategy_accuracy = [d['avg_accuracy'] or 0 for d in strategy_data]
+    strategy_count = [d['count'] for d in strategy_data]
+    strategy_avg_water = [d['avg_water_level'] for d in strategy_data]
+    strategy_avg_flow = [d['avg_flow_rate'] for d in strategy_data]
+
+    radar_datasets = []
+    for i, analysis in enumerate(comprehensive_analysis[:3]):
+        seasonal_eff = {item['season']: item['efficiency'] for item in analysis['seasonal_breakdown']}
+        water_eff = {item['interval']: item['efficiency'] for item in analysis['water_breakdown']}
+        
+        radar_data = [
+            seasonal_eff.get('spring', 0),
+            seasonal_eff.get('summer', 0),
+            seasonal_eff.get('autumn', 0),
+            seasonal_eff.get('winter', 0),
+            water_eff.get('0-1米', 0),
+            water_eff.get('1-2米', 0),
+            water_eff.get('2-3米', 0),
+            water_eff.get('3-4米', 0),
+        ]
+        
+        colors = [
+            ('rgba(255, 193, 7, 0.2)', 'rgba(255, 193, 7, 1)'),
+            ('rgba(192, 192, 192, 0.2)', 'rgba(192, 192, 192, 1)'),
+            ('rgba(205, 127, 50, 0.2)', 'rgba(205, 127, 50, 1)'),
+        ]
+        bg_color, border_color = colors[i] if i < len(colors) else colors[-1]
+        
+        radar_datasets.append({
+            'label': strategy_labels[i],
+            'data': radar_data,
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'borderWidth': 2,
+        })
+
+    radar_labels = ['春季', '夏季', '秋季', '冬季', '0-1米', '1-2米', '2-3米', '3-4米']
+
+    context = {
+        'title': '闸口策略对比分析',
+        'filter_form': form,
+        'strategy_data': strategy_data,
+        'comprehensive_analysis': comprehensive_analysis,
+        'strategy_labels': json.dumps(strategy_labels),
+        'strategy_efficiency': json.dumps(strategy_efficiency),
+        'strategy_actual': json.dumps(strategy_actual),
+        'strategy_accuracy': json.dumps(strategy_accuracy),
+        'strategy_count': json.dumps(strategy_count),
+        'strategy_avg_water': json.dumps(strategy_avg_water),
+        'strategy_avg_flow': json.dumps(strategy_avg_flow),
+        'radar_labels': json.dumps(radar_labels),
+        'radar_datasets': json.dumps(radar_datasets),
+    }
+    return render(request, 'reports/strategy_comparison.html', context)
+
+
+def report_simulation(request):
+    form = SimulationForm(request.POST or None)
+    simulation_result = None
+    multi_strategy_results = None
+    historical_reconstruction = None
+    typical_configs = None
+    fishing_calendar = None
+    operation_patterns = None
+
+    weir = None
+    if request.method == 'POST' and form.is_valid():
+        weir = form.cleaned_data['weir']
+        sim_date = form.cleaned_data['simulation_date']
+        water_level = form.cleaned_data['water_level']
+        flow_rate = form.cleaned_data['flow_rate']
+        weather = form.cleaned_data['weather']
+        gate_config = form.cleaned_data['gate_config']
+        historical_period = form.cleaned_data['historical_period']
+        simulation_mode = request.POST.get('simulation_mode', 'single')
+
+        if simulation_mode == 'single':
+            simulation_result = simulate_harvest(
+                weir=weir,
+                sim_date=sim_date,
+                water_level=water_level,
+                flow_rate=flow_rate,
+                weather=weather,
+                gate_config=gate_config,
+                historical_period=historical_period
+            )
+        elif simulation_mode == 'multi':
+            additional_strategies = request.POST.get('additional_strategies', '')
+            strategies = [s.strip() for s in additional_strategies.split('\n') if s.strip()]
+            if gate_config and gate_config not in strategies:
+                strategies.insert(0, gate_config)
+            
+            if strategies:
+                multi_strategy_results = simulate_multiple_strategies(
+                    weir=weir,
+                    sim_date=sim_date,
+                    water_level=water_level,
+                    flow_rate=flow_rate,
+                    weather=weather,
+                    strategies=strategies,
+                    historical_period=historical_period
+                )
+        elif simulation_mode == 'reconstruct':
+            reconstruct_date = form.cleaned_data['simulation_date']
+            historical_reconstruction = reconstruct_historical_operation(weir, reconstruct_date)
+
+    if weir or (request.method == 'GET' and Weir.objects.exists()):
+        if not weir:
+            weir = Weir.objects.exclude(code__startswith='T-').order_by('id').first()
+            if not weir:
+                weir = Weir.objects.first()
+        
+        typical_configs = get_typical_gate_configs(weir, top_n=5)
+        fishing_calendar = get_traditional_fishing_calendar(weir)
+        operation_patterns = get_historical_operation_patterns(weir)
+
+    if multi_strategy_results:
+        sorted_results = sorted(multi_strategy_results, key=lambda x: x['rank'])
+        ms_labels = [r['strategy'] for r in sorted_results]
+        ms_weights = [r['estimated_weight'] for r in sorted_results]
+        ms_confidence = [r['confidence'] for r in sorted_results]
+    else:
+        ms_labels = []
+        ms_weights = []
+        ms_confidence = []
+
+    context = {
+        'title': '历史作业模拟推演',
+        'form': form,
+        'simulation_result': simulation_result,
+        'multi_strategy_results': multi_strategy_results,
+        'historical_reconstruction': historical_reconstruction,
+        'typical_configs': typical_configs,
+        'fishing_calendar': fishing_calendar,
+        'operation_patterns': operation_patterns,
+        'selected_weir': weir,
+        'ms_labels': json.dumps(ms_labels),
+        'ms_weights': json.dumps(ms_weights),
+        'ms_confidence': json.dumps(ms_confidence),
+    }
+    return render(request, 'reports/simulation.html', context)

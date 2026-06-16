@@ -1,0 +1,511 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">筛选条件</h3>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="filter-form comprehensive-filter">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>{{ filter_form.weir.label }}</label>
+                        {{ filter_form.weir }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ filter_form.start_date.label }}</label>
+                        {{ filter_form.start_date }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ filter_form.end_date.label }}</label>
+                        {{ filter_form.end_date }}
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>时间维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.season.label }}</label>
+                            <div class="checkbox-inline-container">
+                                {% for checkbox in filter_form.season %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.months.label }}</label>
+                            <div class="checkbox-inline-container months-grid">
+                                {% for checkbox in filter_form.months %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>水文维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>{{ filter_form.water_level_min.label }}</label>
+                            {{ filter_form.water_level_min }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.water_level_max.label }}</label>
+                            {{ filter_form.water_level_max }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.flow_rate_min.label }}</label>
+                            {{ filter_form.flow_rate_min }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.flow_rate_max.label }}</label>
+                            {{ filter_form.flow_rate_max }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>环境与策略维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.weather.label }}</label>
+                            <div class="checkbox-inline-container weather-grid">
+                                {% for checkbox in filter_form.weather %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.gate_strategy.label }}</label>
+                            {{ filter_form.gate_strategy }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.gate_status.label }}</label>
+                            {{ filter_form.gate_status }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>📊</span> 对比分析
+                    </button>
+                    <a href="{% url 'report_strategy_comparison' %}" class="btn btn-secondary">重置条件</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if strategy_data %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">策略效率对比</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="strategyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">多维度对比</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-row">
+                    <div class="chart-item">
+                        <h5>日均效率对比</h5>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="efficiencyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-item">
+                        <h5>准确率对比</h5>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="accuracyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">策略详情对比</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>闸口策略</th>
+                                <th>记录数</th>
+                                <th>平均水位(米)</th>
+                                <th>平均流速(m/s)</th>
+                                <th>总估算(公斤)</th>
+                                <th>总实际(公斤)</th>
+                                <th>日均效率(公斤)</th>
+                                <th>准确率(%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in strategy_data %}
+                                <tr>
+                                    <td>
+                                        {% if forloop.counter == 1 %}
+                                            <span class="badge badge-gold">🥇 第1名</span>
+                                        {% elif forloop.counter == 2 %}
+                                            <span class="badge badge-silver">🥈 第2名</span>
+                                        {% elif forloop.counter == 3 %}
+                                            <span class="badge badge-bronze">🥉 第3名</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">第{{ forloop.counter }}名</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ item.strategy }}</strong></td>
+                                    <td>{{ item.count }}</td>
+                                    <td>{{ item.avg_water_level }}</td>
+                                    <td>{{ item.avg_flow_rate }}</td>
+                                    <td>{{ item.total_estimated }}</td>
+                                    <td>{{ item.total_actual }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ item.efficiency }}</span>
+                                    </td>
+                                    <td>
+                                        {% if item.avg_accuracy >= 80 %}
+                                            <span class="badge badge-success">{{ item.avg_accuracy }}%</span>
+                                        {% elif item.avg_accuracy >= 60 %}
+                                            <span class="badge badge-warning">{{ item.avg_accuracy }}%</span>
+                                        {% else %}
+                                            <span class="badge badge-error">{{ item.avg_accuracy }}%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">策略效率分布</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        {% if comprehensive_analysis %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🎯 多维度策略雷达图对比（Top 3 策略）</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 450px;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">💡 各策略最优条件分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
+                    {% for analysis in comprehensive_analysis %}
+                    <div class="stat-card {% if forloop.counter == 1 %}accent{% elif forloop.counter == 2 %}info{% endif %}">
+                        <div class="stat-label" style="font-size: 16px; font-weight: 600; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;">
+                            #{{ forloop.counter }} {{ analysis.strategy.strategy|truncatechars:30 }}
+                        </div>
+                        <div class="detail-grid" style="margin-top: 0;">
+                            <div class="detail-item">
+                                <div class="label">整体效率</div>
+                                <div class="value">{{ analysis.strategy.efficiency }} kg/天</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="label">准确率</div>
+                                <div class="value">{{ analysis.strategy.avg_accuracy }}%</div>
+                            </div>
+                        </div>
+                        {% if analysis.optimal_conditions %}
+                        <div style="margin-top: 16px;">
+                            <strong style="font-size: 13px; color: var(--accent-color);">🌟 最优作业条件：</strong>
+                            <div style="margin-top: 8px; font-size: 12px; line-height: 1.8;">
+                                {% if analysis.optimal_conditions.best_season %}
+                                <div>📅 最佳季节：<strong>{{ analysis.optimal_conditions.best_season.season_name }}</strong>（{{ analysis.optimal_conditions.best_season.efficiency }} kg/天）</div>
+                                {% endif %}
+                                {% if analysis.optimal_conditions.best_water_interval %}
+                                <div>💧 最佳水位：<strong>{{ analysis.optimal_conditions.best_water_interval.interval }}</strong>（{{ analysis.optimal_conditions.best_water_interval.efficiency }} kg/天）</div>
+                                {% endif %}
+                                {% if analysis.optimal_conditions.best_flow_interval %}
+                                <div>🌊 最佳流速：<strong>{{ analysis.optimal_conditions.best_flow_interval.interval }}</strong>（{{ analysis.optimal_conditions.best_flow_interval.efficiency }} kg/天）</div>
+                                {% endif %}
+                                {% if analysis.optimal_conditions.best_weather %}
+                                <div>⛅ 最佳天气：<strong>{{ analysis.optimal_conditions.best_weather.weather }}</strong>（{{ analysis.optimal_conditions.best_weather.efficiency }} kg/天）</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                        titleFont: { family: "'Noto Sans SC', sans-serif", size: 14 },
+                        bodyFont: { family: "'Noto Sans SC', sans-serif", size: 13 },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    }
+                }
+            };
+
+            new Chart(document.getElementById('strategyChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ strategy_labels|safe }},
+                    datasets: [{
+                        label: '日均效率(公斤)',
+                        data: {{ strategy_efficiency|safe }},
+                        backgroundColor: [
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(192, 192, 192, 0.8)',
+                            'rgba(205, 127, 50, 0.8)',
+                            'rgba(30, 58, 95, 0.7)',
+                            'rgba(46, 125, 50, 0.7)',
+                            'rgba(156, 39, 176, 0.7)',
+                            'rgba(201, 162, 39, 0.7)',
+                        ],
+                        borderColor: [
+                            '#ffc107',
+                            '#c0c0c0',
+                            '#cd7f32',
+                            '#1e3a5f',
+                            '#2e7d32',
+                            '#9c27b0',
+                            '#c9a227',
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            ...chartOptions.plugins.tooltip,
+                            callbacks: {
+                                label: function(context) {
+                                    return '日均效率: ' + context.parsed.x + ' 公斤';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('efficiencyChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ strategy_labels|safe }},
+                    datasets: [{
+                        label: '日均效率(公斤)',
+                        data: {{ strategy_efficiency|safe }},
+                        backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                        borderColor: '#1e3a5f',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'x'
+                }
+            });
+
+            new Chart(document.getElementById('accuracyChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ strategy_labels|safe }},
+                    datasets: [{
+                        label: '准确率(%)',
+                        data: {{ strategy_accuracy|safe }},
+                        backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                        borderColor: '#2e7d32',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'x',
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            max: 100,
+                            ticks: {
+                                ...chartOptions.scales.y.ticks,
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('distributionChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: {{ strategy_labels|safe }},
+                    datasets: [{
+                        data: {{ strategy_efficiency|safe }},
+                        backgroundColor: [
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(192, 192, 192, 0.8)',
+                            'rgba(205, 127, 50, 0.8)',
+                            'rgba(30, 58, 95, 0.7)',
+                            'rgba(46, 125, 50, 0.7)',
+                            'rgba(156, 39, 176, 0.7)',
+                            'rgba(201, 162, 39, 0.7)',
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            titleFont: { family: "'Noto Sans SC', sans-serif", size: 14 },
+                            bodyFont: { family: "'Noto Sans SC', sans-serif", size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + ' 公斤/天';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            {% if comprehensive_analysis %}
+            new Chart(document.getElementById('radarChart'), {
+                type: 'radar',
+                data: {
+                    labels: {{ radar_labels|safe }},
+                    datasets: {{ radar_datasets|safe }}
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            titleFont: { family: "'Noto Sans SC', sans-serif", size: 14 },
+                            bodyFont: { family: "'Noto Sans SC', sans-serif", size: 13 },
+                        },
+                        title: {
+                            display: true,
+                            text: '季节×水位区间 多维度效率分布',
+                            font: { family: "'Noto Sans SC', sans-serif", size: 14 }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 10 }
+                            },
+                            pointLabels: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        });
+    </script>
+{% endblock %}

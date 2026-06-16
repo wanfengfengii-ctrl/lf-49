@@ -64,14 +64,16 @@ class Command(BaseCommand):
                     water_level = round(random.uniform(0.5, 4.5), 2)
                     flow_rate = round(random.uniform(0.2, 3.0), 2)
                     
-                    WaterLevel.objects.create(
+                    wl, wl_created = WaterLevel.objects.get_or_create(
                         weir=weir,
                         record_date=current_date,
-                        water_level=water_level,
-                        flow_rate=flow_rate,
-                        weather=random.choice(weathers),
                         is_primary=True,
-                        notes=f'当日水位{water_level}米，流速{flow_rate}m/s'
+                        defaults={
+                            'water_level': water_level,
+                            'flow_rate': flow_rate,
+                            'weather': random.choice(weathers),
+                            'notes': f'当日水位{water_level}米，流速{flow_rate}m/s'
+                        }
                     )
 
                     if random.random() > 0.3:
@@ -91,24 +93,26 @@ class Command(BaseCommand):
                         weight = round(base_harvest * season_factor * random.uniform(0.7, 1.3), 2)
                         quantity = int(weight * random.uniform(0.5, 1.5))
 
-                        HarvestRecord.objects.create(
-                            weir=weir,
-                            record_date=current_date,
-                            fish_species=species,
-                            weight=weight,
-                            quantity=max(1, quantity),
-                            recorder='研究员' + random.choice(['A', 'B', 'C'])
-                        )
+                        if not HarvestRecord.objects.filter(weir=weir, record_date=current_date).exists():
+                            HarvestRecord.objects.create(
+                                weir=weir,
+                                record_date=current_date,
+                                fish_species=species,
+                                weight=weight,
+                                quantity=max(1, quantity),
+                                recorder='研究员' + random.choice(['A', 'B', 'C'])
+                            )
 
                     if random.random() > 0.7:
-                        FishSchool.objects.create(
-                            weir=weir,
-                            record_date=current_date,
-                            observe_time=timezone.now().time(),
-                            fish_type=random.choice(fish_types),
-                            estimated_count=random.randint(10, 200),
-                            direction=random.choice(['upstream', 'downstream'])
-                        )
+                        if not FishSchool.objects.filter(weir=weir, record_date=current_date).exists():
+                            FishSchool.objects.create(
+                                weir=weir,
+                                record_date=current_date,
+                                observe_time=timezone.now().time(),
+                                fish_type=random.choice(fish_types),
+                                estimated_count=random.randint(10, 200),
+                                direction=random.choice(['upstream', 'downstream'])
+                            )
 
                     if random.random() > 0.85:
                         gate_num = f'G-{random.randint(1, weir.gate_count)}'
@@ -120,14 +124,19 @@ class Command(BaseCommand):
                             '汛期防护',
                             '渔汛季节调整'
                         ])
-                        GateStatus.objects.create(
+                        if not GateStatus.objects.filter(
                             weir=weir,
                             gate_number=gate_num,
-                            status=new_status,
-                            change_time=timezone.make_aware(datetime.combine(current_date, datetime.min.time())),
-                            reason=reason,
-                            operator='研究员' + random.choice(['A', 'B', 'C'])
-                        )
+                            change_time__date=current_date
+                        ).exists():
+                            GateStatus.objects.create(
+                                weir=weir,
+                                gate_number=gate_num,
+                                status=new_status,
+                                change_time=timezone.make_aware(datetime.combine(current_date, datetime.min.time())),
+                                reason=reason,
+                                operator='研究员' + random.choice(['A', 'B', 'C'])
+                            )
 
                 current_date += timedelta(days=1)
 
