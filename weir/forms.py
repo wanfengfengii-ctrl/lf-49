@@ -305,6 +305,17 @@ class FishMigrationFilterForm(forms.Form):
         label='鱼种',
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
     )
+    gate_status = forms.MultipleChoiceField(
+        choices=GATE_STATUS_CHOICES,
+        required=False,
+        label='闸口状态',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    gate_strategy = forms.CharField(
+        required=False,
+        label='闸口策略（如：G-1开,G-2关）',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '可选，精确匹配闸口策略组合'})
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

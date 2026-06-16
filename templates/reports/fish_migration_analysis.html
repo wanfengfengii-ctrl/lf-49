@@ -109,6 +109,27 @@
                     </div>
                 </div>
 
+                <div class="filter-section">
+                    <h4>🚪 闸口策略维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.gate_status.label }}</label>
+                            <div class="checkbox-inline-container">
+                                {% for checkbox in filter_form.gate_status %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.gate_strategy.label }}</label>
+                            {{ filter_form.gate_strategy }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">
                         <span>🐟</span> 开始鱼汛分析
@@ -502,6 +523,291 @@
             {% endif %}
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🗺️ 多鱼种迁游路径趋势分析</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-row">
+                <div class="chart-item">
+                    <h5>不同鱼种季节分布对比</h5>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="speciesSeasonPathChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-item">
+                    <h5>闸口状态下鱼种分布</h5>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="gateStatusSpeciesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% if species_path_analysis %}
+            <div class="table-responsive" style="margin-top: 24px;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>鱼种</th>
+                            <th>鱼群记录</th>
+                            <th>预估总数</th>
+                            <th>平均规模</th>
+                            <th>收获重量</th>
+                            <th>转化率</th>
+                            <th>偏好季节</th>
+                            <th>偏好水位</th>
+                            <th>偏好流速</th>
+                            <th>游动方向</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in species_path_analysis %}
+                        <tr>
+                            <td><strong>{{ item.species }}</strong></td>
+                            <td>{{ item.fish_school_count }}</td>
+                            <td>{{ item.total_fish_estimated }}</td>
+                            <td>{{ item.avg_school_size|default:0 }}</td>
+                            <td>{{ item.total_harvest_weight|default:0 }}</td>
+                            <td>
+                                <span class="badge badge-accent">{{ item.conversion_rate }}%</span>
+                            </td>
+                            <td>
+                                {% with max_season_val=0 max_season_name="" %}
+                                {% for season, val in item.seasonal_distribution.items %}
+                                    {% if val > max_season_val %}
+                                        {% if season == "spring" %}春季
+                                        {% elif season == "summer" %}夏季
+                                        {% elif season == "autumn" %}秋季
+                                        {% else %}冬季{% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with max_water_val=0 max_water_label="" %}
+                                {% for label, val in item.water_level_distribution.items %}
+                                    {% if val > max_water_val %}{{ label }}{% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with max_flow_val=0 max_flow_label="" %}
+                                {% for label, val in item.flow_rate_distribution.items %}
+                                    {% if val > max_flow_val %}{{ label }}{% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% if item.upstream_count > item.downstream_count %}
+                                    <span class="badge badge-info">⬆️ 逆流</span>
+                                {% else %}
+                                    <span class="badge badge-warning">⬇️ 顺流</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 鱼种响应差异对比分析</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 450px;">
+                <canvas id="speciesResponseChart"></canvas>
+            </div>
+            <p style="margin-top: 16px; font-size: 13px; color: #666;">
+                💡 <strong>说明：</strong>对比不同鱼种在季节、水位、流速和闸口状态等多维度环境条件下的迁游响应差异，识别各鱼种的生态位偏好。
+            </p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚪 闸口协同效果分析</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="gateSynergyChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #c9a227;"></span>
+                    <span>捕获转化率（%）</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #2e7d32;"></span>
+                    <span>鱼群预估数量（尾）</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #1e3a5f;"></span>
+                    <span>实际收获重量（公斤）</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #9c27b0;"></span>
+                    <span>闸口开启率（%）</span>
+                </div>
+            </div>
+            {% if gate_synergy_analysis %}
+            <div class="table-responsive" style="margin-top: 24px;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>闸口策略</th>
+                            <th>开启闸数</th>
+                            <th>开启率</th>
+                            <th>鱼群记录</th>
+                            <th>预估鱼数</th>
+                            <th>收获重量</th>
+                            <th>转化率</th>
+                            <th>主要鱼种</th>
+                            <th>优势天气</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in gate_synergy_analysis %}
+                        <tr>
+                            <td>
+                                {% if forloop.counter == 1 %}
+                                    <span class="badge badge-gold">🥇 第1名</span>
+                                {% elif forloop.counter == 2 %}
+                                    <span class="badge badge-silver">🥈 第2名</span>
+                                {% elif forloop.counter == 3 %}
+                                    <span class="badge badge-bronze">🥉 第3名</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">第{{ forloop.counter }}名</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ item.strategy }}</strong></td>
+                            <td>{{ item.open_gate_count }}/{{ item.total_gate_count }}</td>
+                            <td>
+                                <span class="badge badge-success">{{ item.open_ratio }}%</span>
+                            </td>
+                            <td>{{ item.fish_school_count }}</td>
+                            <td>{{ item.total_fish_estimated }}</td>
+                            <td>{{ item.total_harvest_weight }}</td>
+                            <td>
+                                <span class="badge badge-accent">{{ item.conversion_rate }}%</span>
+                            </td>
+                            <td>
+                                {% for sp in item.top_species|slice:":2" %}
+                                    <span class="badge badge-primary" style="margin-right: 4px;">{{ sp.species }} {{ sp.percentage }}%</span>
+                                {% endfor %}
+                            </td>
+                            <td><small>{{ item.dominant_weather }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🎯 闸口组合策略推荐</h3>
+        </div>
+        <div class="card-body">
+            {% if gate_strategy_recommendations.overall_best_strategies %}
+            <div class="card-grid">
+                {% for strategy in gate_strategy_recommendations.overall_best_strategies %}
+                <div class="strategy-card strategy-rank-{{ forloop.counter }}">
+                    <div class="strategy-rank">
+                        {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}#{{ forloop.counter }}{% endif %}
+                    </div>
+                    <div class="strategy-content">
+                        <h4 class="strategy-name">{{ strategy.strategy }}</h4>
+                        <div class="strategy-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ strategy.conversion_rate }}%</div>
+                                <div class="stat-label">转化率</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ strategy.total_harvest }}</div>
+                                <div class="stat-label">收获(kg)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ strategy.open_ratio }}%</div>
+                                <div class="stat-label">开启率</div>
+                            </div>
+                        </div>
+                        <div class="strategy-meta">
+                            <p><strong>主要鱼种：</strong>
+                                {% for sp in strategy.top_species|slice:":3" %}
+                                    <span class="badge badge-primary" style="margin-right: 4px;">{{ sp.species }}</span>
+                                {% endfor %}
+                            </p>
+                            <p><strong>适宜条件：</strong>水位 {{ strategy.avg_water_level|default:"-" }}m，流速 {{ strategy.avg_flow_rate|default:"-" }}m/s</p>
+                            <p><strong>优势天气：</strong>{{ strategy.dominant_weather }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if gate_strategy_recommendations.species_recommendations %}
+            <h4 style="margin-top: 32px; margin-bottom: 16px; color: var(--primary-dark);">🐟 分鱼种最优策略推荐</h4>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>鱼种</th>
+                            <th>预估总数</th>
+                            <th>收获重量</th>
+                            <th>转化率</th>
+                            <th>最佳季节</th>
+                            <th>最佳水位</th>
+                            <th>最佳流速</th>
+                            <th>游动方向</th>
+                            <th>推荐闸口策略</th>
+                            <th>策略建议</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in gate_strategy_recommendations.species_recommendations %}
+                        <tr>
+                            <td><strong>{{ rec.species }}</strong></td>
+                            <td>{{ rec.total_fish_estimated }}</td>
+                            <td>{{ rec.total_harvest_weight }}</td>
+                            <td>
+                                <span class="badge badge-accent">{{ rec.conversion_rate }}%</span>
+                            </td>
+                            <td>{{ rec.optimal_conditions.best_season }}</td>
+                            <td>{{ rec.optimal_conditions.best_water_level }}</td>
+                            <td>{{ rec.optimal_conditions.best_flow_rate }}</td>
+                            <td>
+                                {% if rec.migration_pattern.preferred_direction == "逆流而上" %}
+                                    <span class="badge badge-info">⬆️ 逆流</span>
+                                {% else %}
+                                    <span class="badge badge-warning">⬇️ 顺流</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for gs in rec.gate_strategies|slice:":1" %}
+                                    <div><strong>{{ gs.strategy }}</strong></div>
+                                    <div><small>转化率 {{ gs.conversion_rate }}%</small></div>
+                                {% empty %}
+                                    <span style="color: #999;">数据不足</span>
+                                {% endfor %}
+                            </td>
+                            <td style="font-size: 12px; max-width: 250px;">{{ rec.strategy_advice }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     {% else %}
     <div class="card">
         <div class="card-body">
@@ -575,6 +881,84 @@
             color: var(--text-muted);
             margin: 0;
             line-height: 1.7;
+        }
+        .strategy-card {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .strategy-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .strategy-card.strategy-rank-1 {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, white 100%);
+        }
+        .strategy-card.strategy-rank-2 {
+            border-color: #c0c0c0;
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.08) 0%, white 100%);
+        }
+        .strategy-card.strategy-rank-3 {
+            border-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.08) 0%, white 100%);
+        }
+        .strategy-rank {
+            font-size: 36px;
+            font-weight: bold;
+            flex-shrink: 0;
+            width: 60px;
+            text-align: center;
+        }
+        .strategy-content {
+            flex: 1;
+        }
+        .strategy-name {
+            font-size: 16px;
+            margin: 0 0 12px;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+        .strategy-stats {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 12px;
+        }
+        .strategy-stats .stat-item {
+            text-align: center;
+        }
+        .strategy-stats .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+        .strategy-stats .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .strategy-meta p {
+            margin: 6px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .chart-item {
+            min-width: 0;
+        }
+        @media (max-width: 992px) {
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <script>
@@ -982,6 +1366,198 @@
                         y: {
                             grid: { display: false },
                             ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('speciesSeasonPathChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ path_species_labels|safe }},
+                    datasets: {{ path_season_datasets|safe }}
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '鱼群预估数量（尾）',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('gateStatusSpeciesChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ path_gate_status_labels|safe }},
+                    datasets: {{ path_gate_datasets|safe }}
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '鱼群预估数量（尾）',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('speciesResponseChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ response_groups|safe }},
+                    datasets: {{ response_datasets|safe }}
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '鱼群预估数量（尾）',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('gateSynergyChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ gate_strategy_labels|safe }},
+                    datasets: [
+                        {
+                            label: '捕获转化率（%）',
+                            data: {{ gate_conversion_rates|safe }},
+                            backgroundColor: 'rgba(201, 162, 39, 0.7)',
+                            borderColor: '#c9a227',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '鱼群预估数量（百尾）',
+                            data: {{ gate_total_fish|safe }}.map(v => v / 100),
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '收获重量（十公斤）',
+                            data: {{ gate_total_harvest|safe }}.map(v => v / 10),
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '闸口开启率（%）',
+                            data: {{ gate_open_ratios|safe }},
+                            type: 'line',
+                            borderColor: '#9c27b0',
+                            backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: '#9c27b0',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '数量 / 重量 / 转化率',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            max: 100,
+                            position: 'right',
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 11 },
+                                callback: function(value) { return value + '%'; }
+                            },
+                            title: {
+                                display: true,
+                                text: '开启率(%)',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
                         }
                     }
                 }

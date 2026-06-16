@@ -836,6 +836,8 @@ def report_fish_migration(request):
             'flow_rate_max': form.cleaned_data.get('flow_rate_max'),
             'weather': form.cleaned_data.get('weather'),
             'fish_species': form.cleaned_data.get('fish_species'),
+            'gate_status': form.cleaned_data.get('gate_status'),
+            'gate_strategy': form.cleaned_data.get('gate_strategy'),
         }
 
     analysis = get_comprehensive_migration_analysis(filters)
@@ -895,10 +897,85 @@ def report_fish_migration(request):
         abs(correlations['flow_rate_harvest_correlation'] or 0) * 100,
     ]
 
+    species_path_analysis = analysis['species_path_analysis']
+    species_response = analysis['species_response_comparison']
+    gate_synergy = analysis['gate_synergy_analysis']
+    gate_recommendations = analysis['gate_strategy_recommendations']
+
+    path_species_labels = [d['species'] for d in species_path_analysis[:8]]
+    path_season_datasets = []
+    season_colors = [
+        ('rgba(76, 175, 80, 0.7)', 'rgba(76, 175, 80, 1)'),
+        ('rgba(255, 193, 7, 0.7)', 'rgba(255, 193, 7, 1)'),
+        ('rgba(255, 87, 34, 0.7)', 'rgba(255, 87, 34, 1)'),
+        ('rgba(33, 150, 243, 0.7)', 'rgba(33, 150, 243, 1)'),
+    ]
+    for i, season in enumerate(['spring', 'summer', 'autumn', 'winter']):
+        season_name = {'spring': '春季', 'summer': '夏季', 'autumn': '秋季', 'winter': '冬季'}[season]
+        bg_color, border_color = season_colors[i]
+        path_season_datasets.append({
+            'label': season_name,
+            'data': [d['seasonal_distribution'].get(season, 0) for d in species_path_analysis[:8]],
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'borderWidth': 2,
+        })
+
+    path_gate_status_labels = ['闸口开启', '闸口关闭']
+    path_gate_datasets = []
+    for i, species_data in enumerate(species_path_analysis[:6]):
+        colors = [
+            ('rgba(46, 125, 50, 0.7)', 'rgba(46, 125, 50, 1)'),
+            ('rgba(30, 58, 95, 0.7)', 'rgba(30, 58, 95, 1)'),
+            ('rgba(201, 162, 39, 0.7)', 'rgba(201, 162, 39, 1)'),
+            ('rgba(156, 39, 176, 0.7)', 'rgba(156, 39, 176, 1)'),
+            ('rgba(211, 47, 47, 0.7)', 'rgba(211, 47, 47, 1)'),
+            ('rgba(0, 150, 136, 0.7)', 'rgba(0, 150, 136, 1)'),
+        ]
+        bg_color, border_color = colors[i % len(colors)]
+        path_gate_datasets.append({
+            'label': species_data['species'],
+            'data': [
+                species_data['gate_status_distribution'].get('open', 0),
+                species_data['gate_status_distribution'].get('closed', 0),
+            ],
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'borderWidth': 2,
+        })
+
+    response_groups = [d['group'] for d in species_response['comparison_data']]
+    response_species_list = species_response['species_list']
+    response_datasets = []
+    for i, species in enumerate(response_species_list):
+        colors = [
+            'rgba(46, 125, 50, 0.7)', 'rgba(30, 58, 95, 0.7)',
+            'rgba(201, 162, 39, 0.7)', 'rgba(156, 39, 176, 0.7)',
+            'rgba(211, 47, 47, 0.7)', 'rgba(0, 150, 136, 0.7)',
+            'rgba(255, 152, 0, 0.7)', 'rgba(96, 125, 139, 0.7)',
+        ]
+        response_datasets.append({
+            'label': species,
+            'data': [d['species_values'].get(species, 0) for d in species_response['comparison_data']],
+            'backgroundColor': colors[i % len(colors)],
+            'borderColor': colors[i % len(colors)].replace('0.7', '1'),
+            'borderWidth': 2,
+        })
+
+    top_gate_strategies = gate_synergy[:8]
+    gate_strategy_labels = [
+        d['strategy'][:20] + '...' if len(d['strategy']) > 20 else d['strategy']
+        for d in top_gate_strategies
+    ]
+    gate_conversion_rates = [d['conversion_rate'] for d in top_gate_strategies]
+    gate_total_fish = [d['total_fish_estimated'] for d in top_gate_strategies]
+    gate_total_harvest = [d['total_harvest_weight'] for d in top_gate_strategies]
+    gate_open_ratios = [d['open_ratio'] for d in top_gate_strategies]
+
     has_data = analysis['has_data']
 
     context = {
-        'title': '鱼梁生态响应与鱼汛预警分析',
+        'title': '多鱼种迁游路径与闸口协同优化分析',
         'filter_form': form,
         'has_data': has_data,
         'fish_summary': analysis['fish_summary'],
@@ -934,5 +1011,20 @@ def report_fish_migration(request):
         'factor_category_colors': json.dumps(factor_category_colors),
         'radar_labels': json.dumps(radar_labels),
         'radar_values': json.dumps(radar_values),
+        'species_path_analysis': species_path_analysis,
+        'path_species_labels': json.dumps(path_species_labels),
+        'path_season_datasets': json.dumps(path_season_datasets),
+        'path_gate_status_labels': json.dumps(path_gate_status_labels),
+        'path_gate_datasets': json.dumps(path_gate_datasets),
+        'response_groups': json.dumps(response_groups),
+        'response_species_list': json.dumps(response_species_list),
+        'response_datasets': json.dumps(response_datasets),
+        'gate_synergy_analysis': gate_synergy,
+        'gate_strategy_labels': json.dumps(gate_strategy_labels),
+        'gate_conversion_rates': json.dumps(gate_conversion_rates),
+        'gate_total_fish': json.dumps(gate_total_fish),
+        'gate_total_harvest': json.dumps(gate_total_harvest),
+        'gate_open_ratios': json.dumps(gate_open_ratios),
+        'gate_strategy_recommendations': gate_recommendations,
     }
     return render(request, 'reports/fish_migration_analysis.html', context)
