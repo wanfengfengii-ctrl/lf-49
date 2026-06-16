@@ -166,7 +166,11 @@ def water_level_create(request):
             except Exception as e:
                 messages.error(request, f'保存失败：{e}')
     else:
-        form = WaterLevelForm(initial={'record_date': timezone.now().date()})
+        initial = {'record_date': timezone.now().date()}
+        weir_id = request.GET.get('weir')
+        if weir_id:
+            initial['weir'] = weir_id
+        form = WaterLevelForm(initial=initial)
     context = {'form': form, 'title': '新增水位记录'}
     return render(request, 'water_level/form.html', context)
 
@@ -186,6 +190,16 @@ def water_level_edit(request, pk):
         form = WaterLevelForm(instance=water_level)
     context = {'form': form, 'title': '编辑水位记录', 'water_level': water_level}
     return render(request, 'water_level/form.html', context)
+
+
+def water_level_delete(request, pk):
+    water_level = get_object_or_404(WaterLevel, pk=pk)
+    if request.method == 'POST':
+        water_level.delete()
+        messages.success(request, '水位记录删除成功！')
+        return redirect('water_level_list')
+    context = {'water_level': water_level, 'title': '删除水位记录'}
+    return render(request, 'water_level/delete.html', context)
 
 
 def gate_status_list(request):
@@ -212,9 +226,37 @@ def gate_status_create(request):
             messages.success(request, '闸口状态创建成功！收获估算已自动重新计算。')
             return redirect('gate_status_list')
     else:
-        form = GateStatusForm(initial={'change_time': timezone.now()})
+        initial = {'change_time': timezone.now()}
+        weir_id = request.GET.get('weir')
+        if weir_id:
+            initial['weir'] = weir_id
+        form = GateStatusForm(initial=initial)
     context = {'form': form, 'title': '新增闸口状态'}
     return render(request, 'gate/form.html', context)
+
+
+def gate_status_edit(request, pk):
+    gate_status = get_object_or_404(GateStatus, pk=pk)
+    if request.method == 'POST':
+        form = GateStatusForm(request.POST, instance=gate_status)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '闸口状态更新成功！收获估算已自动重新计算。')
+            return redirect('gate_status_list')
+    else:
+        form = GateStatusForm(instance=gate_status)
+    context = {'form': form, 'title': '编辑闸口状态', 'gate_status': gate_status}
+    return render(request, 'gate/form.html', context)
+
+
+def gate_status_delete(request, pk):
+    gate_status = get_object_or_404(GateStatus, pk=pk)
+    if request.method == 'POST':
+        gate_status.delete()
+        messages.success(request, '闸口状态删除成功！')
+        return redirect('gate_status_list')
+    context = {'gate_status': gate_status, 'title': '删除闸口状态'}
+    return render(request, 'gate/delete.html', context)
 
 
 def harvest_list(request):
@@ -249,9 +291,37 @@ def harvest_create(request):
             messages.success(request, '收获记录创建成功！')
             return redirect('harvest_list')
     else:
-        form = HarvestRecordForm(initial={'record_date': timezone.now().date()})
+        initial = {'record_date': timezone.now().date()}
+        weir_id = request.GET.get('weir')
+        if weir_id:
+            initial['weir'] = weir_id
+        form = HarvestRecordForm(initial=initial)
     context = {'form': form, 'title': '新增收获记录'}
     return render(request, 'harvest/form.html', context)
+
+
+def harvest_edit(request, pk):
+    harvest = get_object_or_404(HarvestRecord, pk=pk)
+    if request.method == 'POST':
+        form = HarvestRecordForm(request.POST, instance=harvest)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '收获记录更新成功！')
+            return redirect('harvest_list')
+    else:
+        form = HarvestRecordForm(instance=harvest)
+    context = {'form': form, 'title': '编辑收获记录', 'harvest': harvest}
+    return render(request, 'harvest/form.html', context)
+
+
+def harvest_delete(request, pk):
+    harvest = get_object_or_404(HarvestRecord, pk=pk)
+    if request.method == 'POST':
+        harvest.delete()
+        messages.success(request, '收获记录删除成功！')
+        return redirect('harvest_list')
+    context = {'harvest': harvest, 'title': '删除收获记录'}
+    return render(request, 'harvest/delete.html', context)
 
 
 def fish_school_list(request):
@@ -278,12 +348,40 @@ def fish_school_create(request):
             messages.success(request, '鱼群记录创建成功！')
             return redirect('fish_school_list')
     else:
-        form = FishSchoolForm(initial={
+        initial = {
             'record_date': timezone.now().date(),
             'observe_time': timezone.now().time(),
-        })
+        }
+        weir_id = request.GET.get('weir')
+        if weir_id:
+            initial['weir'] = weir_id
+        form = FishSchoolForm(initial=initial)
     context = {'form': form, 'title': '新增鱼群记录'}
     return render(request, 'fish_school/form.html', context)
+
+
+def fish_school_edit(request, pk):
+    fish_school = get_object_or_404(FishSchool, pk=pk)
+    if request.method == 'POST':
+        form = FishSchoolForm(request.POST, instance=fish_school)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '鱼群记录更新成功！')
+            return redirect('fish_school_list')
+    else:
+        form = FishSchoolForm(instance=fish_school)
+    context = {'form': form, 'title': '编辑鱼群记录', 'fish_school': fish_school}
+    return render(request, 'fish_school/form.html', context)
+
+
+def fish_school_delete(request, pk):
+    fish_school = get_object_or_404(FishSchool, pk=pk)
+    if request.method == 'POST':
+        fish_school.delete()
+        messages.success(request, '鱼群记录删除成功！')
+        return redirect('fish_school_list')
+    context = {'fish_school': fish_school, 'title': '删除鱼群记录'}
+    return render(request, 'fish_school/delete.html', context)
 
 
 def report_monthly_trend(request):
@@ -346,6 +444,8 @@ def report_gate_comparison(request):
 
 
 def report_efficiency(request):
+    from django.core.paginator import Paginator
+
     form = ReportFilterForm(request.GET or None)
     weir = form.cleaned_data.get('weir') if form.is_valid() else None
     start_date = form.cleaned_data.get('start_date') if form.is_valid() else None
@@ -369,12 +469,25 @@ def report_efficiency(request):
     if avg_accuracy:
         avg_accuracy = round(avg_accuracy, 2)
 
-    estimates = estimates[:100]
+    paginator = Paginator(estimates, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    filter_params = []
+    if weir:
+        filter_params.append(f'weir={weir.pk}')
+    if start_date:
+        filter_params.append(f'start_date={start_date}')
+    if end_date:
+        filter_params.append(f'end_date={end_date}')
 
     context = {
         'title': '效率估算报表',
         'filter_form': form,
-        'estimates': estimates,
+        'estimates': page_obj.object_list,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'filter_params': '&'.join(filter_params),
         'total_estimated': round(total_estimated, 2),
         'total_actual': round(total_actual, 2),
         'avg_accuracy': avg_accuracy,

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}删除收获记录 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}删除确认{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'harvest_list' %}" class="btn btn-secondary">
+        <span>←</span> 返回列表
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <div class="delete-confirm">
+                <div class="icon">⚠️</div>
+                <h3>确定要删除该收获记录吗？</h3>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">此操作将永久删除该收获记录，删除后相关的收获估算可能需要重新计算。</p>
+
+                <div class="detail-grid" style="margin-bottom: 24px;">
+                    <div class="detail-item">
+                        <div class="label">鱼梁</div>
+                        <div class="value">{{ harvest.weir.code }} - {{ harvest.weir.name }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">记录日期</div>
+                        <div class="value">{{ harvest.record_date|date:"Y-m-d" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">鱼种</div>
+                        <div class="value">{{ harvest.fish_species }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">重量</div>
+                        <div class="value">{{ harvest.weight }} 公斤</div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="btn-group">
+                        <a href="{% url 'harvest_list' %}" class="btn btn-secondary btn-lg">
+                            <span>✕</span> 取消
+                        </a>
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <span>🗑️</span> 确认删除
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
