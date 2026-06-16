@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span>🔍</span> 查询
+                </button>
+                <a href="{% url 'report_monthly_trend' %}" class="btn btn-secondary">重置</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="summary-row">
+        <div class="summary-item">
+            <div class="value">{{ total_estimated|default:0 }} 公斤</div>
+            <div class="label">总估算收获</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_actual|default:0 }} 公斤</div>
+            <div class="label">总实际收获</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">月度趋势对比图</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #1e3a5f;"></span>
+                    <span>估算收获</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #c9a227;"></span>
+                    <span>实际收获</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">数据明细</h3>
+        </div>
+        <div class="card-body">
+            {% if data_list %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th>估算收获(公斤)</th>
+                            <th>实际收获(公斤)</th>
+                            <th>差值(公斤)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in data_list %}
+                            <tr>
+                                <td>{{ item.month }}</td>
+                                <td>{{ item.estimated|default:0 }}</td>
+                                <td>{{ item.actual|default:0 }}</td>
+                                <td>
+                                    {% if item.diff > 0 %}
+                                        <span class="badge badge-success">+{{ item.diff }}</span>
+                                    {% elif item.diff < 0 %}
+                                        <span class="badge badge-error">{{ item.diff }}</span>
+                                    {% else %}
+                                        <span class="badge badge-info">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            const labels = {{ chart_labels|safe }};
+            const estimatedData = {{ chart_estimated|safe }};
+            const actualData = {{ chart_actual|safe }};
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '估算收获',
+                            data: estimatedData,
+                            borderColor: '#1e3a5f',
+                            backgroundColor: 'rgba(30, 58, 95, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#1e3a5f',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: '实际收获',
+                            data: actualData,
+                            borderColor: '#c9a227',
+                            backgroundColor: 'rgba(201, 162, 39, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#c9a227',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            titleFont: {
+                                family: "'Noto Sans SC', sans-serif",
+                                size: 14
+                            },
+                            bodyFont: {
+                                family: "'Noto Sans SC', sans-serif",
+                                size: 13
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' 公斤';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return value + ' 公斤';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

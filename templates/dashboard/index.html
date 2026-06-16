@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}仪表盘 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}数据概览{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'water_level_create' %}" class="btn btn-primary">
+        <span>💧</span> 录入水位
+    </a>
+    <a href="{% url 'harvest_create' %}" class="btn btn-accent">
+        <span>🎣</span> 录入收获
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🏛️</div>
+            <div class="stat-value">{{ total_weirs }}</div>
+            <div class="stat-label">鱼梁档案总数</div>
+        </div>
+        <div class="stat-card accent">
+            <div class="stat-icon">💧</div>
+            <div class="stat-value">{{ today_water_levels }}</div>
+            <div class="stat-label">今日水位记录</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-icon">🎣</div>
+            <div class="stat-value">{{ today_harvests }}</div>
+            <div class="stat-label">今日收获记录</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">{{ monthly_harvest }} kg</div>
+            <div class="stat-label">本月收获总量</div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a href="{% url 'weir_create' %}" class="quick-action-card">
+            <div class="quick-action-icon">🏛️</div>
+            <div class="quick-action-content">
+                <h3>新增鱼梁</h3>
+                <p>登记新的鱼梁档案信息</p>
+            </div>
+        </a>
+        <a href="{% url 'water_level_create' %}" class="quick-action-card">
+            <div class="quick-action-icon">💧</div>
+            <div class="quick-action-content">
+                <h3>录入水位</h3>
+                <p>记录每日水位和流速数据</p>
+            </div>
+        </a>
+        <a href="{% url 'gate_status_create' %}" class="quick-action-card">
+            <div class="quick-action-icon">🚪</div>
+            <div class="quick-action-content">
+                <h3>闸口状态</h3>
+                <p>记录闸口开合状态变更</p>
+            </div>
+        </a>
+        <a href="{% url 'harvest_create' %}" class="quick-action-card">
+            <div class="quick-action-icon">🎣</div>
+            <div class="quick-action-content">
+                <h3>录入收获</h3>
+                <p>记录实际捕获量数据</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">📈 近期收获趋势</h3>
+                <a href="{% url 'report_monthly_trend' %}" class="btn btn-sm btn-secondary">查看详情</a>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🕐 最近动态</h3>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for item in recent_water_levels|slice:":3" %}
+                        <div class="timeline-item water">
+                            <div class="timeline-date">{{ item.record_date|date:"Y-m-d" }}</div>
+                            <div class="timeline-content">
+                                <span class="badge badge-info">水位</span>
+                                <strong>{{ item.weir.code }}</strong> - {{ item.water_level }}m / {{ item.flow_rate }}m/s
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% for item in recent_harvests|slice:":3" %}
+                        <div class="timeline-item harvest">
+                            <div class="timeline-date">{{ item.record_date|date:"Y-m-d" }}</div>
+                            <div class="timeline-content">
+                                <span class="badge badge-success">收获</span>
+                                <strong>{{ item.weir.code }}</strong> - {{ item.fish_species }} {{ item.weight }}kg
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% for item in recent_gates|slice:":3" %}
+                        <div class="timeline-item gate">
+                            <div class="timeline-date">{{ item.change_time|date:"Y-m-d H:i" }}</div>
+                            <div class="timeline-content">
+                                <span class="badge badge-warning">闸口</span>
+                                <strong>{{ item.weir.code }} {{ item.gate_number }}</strong> - 
+                                {% if item.status == 'open' %}开启{% else %}关闭{% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% if not recent_water_levels and not recent_harvests and not recent_gates %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <h3>暂无记录</h3>
+                            <p>开始录入数据以查看动态</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const labels = {{ chart_labels|safe }};
+    const estimated = {{ chart_estimated|safe }};
+    const actual = {{ chart_actual|safe }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '估算值',
+                    data: estimated,
+                    borderColor: '#c9a227',
+                    backgroundColor: 'rgba(201, 162, 39, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                },
+                {
+                    label: '实际值',
+                    data: actual,
+                    borderColor: '#1e3a5f',
+                    backgroundColor: 'rgba(30, 58, 95, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: "'Noto Sans SC', sans-serif"
+                        },
+                        usePointStyle: true,
+                        padding: 20,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                    titleFont: {
+                        family: "'Noto Sans SC', sans-serif"
+                    },
+                    bodyFont: {
+                        family: "'Noto Sans SC', sans-serif"
+                    },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y + ' kg';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            family: "'Noto Sans SC', sans-serif"
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            family: "'Noto Sans SC', sans-serif"
+                        },
+                        callback: function(value) {
+                            return value + ' kg';
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

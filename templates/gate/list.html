@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}闸口状态 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}闸口状态管理{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'gate_status_create' %}" class="btn btn-primary">
+        <span>➕</span> 新增状态
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">筛选</button>
+                <a href="{% url 'gate_status_list' %}" class="btn btn-secondary">重置</a>
+            </form>
+
+            {% if gate_statuses %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>变更时间</th>
+                                <th>鱼梁</th>
+                                <th>闸口编号</th>
+                                <th>状态</th>
+                                <th>操作人</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for status in gate_statuses %}
+                                <tr>
+                                    <td>{{ status.change_time|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ status.weir.code }}</span>
+                                        {{ status.weir.name }}
+                                    </td>
+                                    <td>{{ status.gate_number }}</td>
+                                    <td>
+                                        {% if status.status == 'open' %}
+                                            <span class="badge badge-success">开启</span>
+                                        {% else %}
+                                            <span class="badge badge-error">关闭</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ status.operator|default:"-" }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="#" class="btn btn-sm btn-primary">编辑</a>
+                                            <a href="#" class="btn btn-sm btn-danger">删除</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🚪</div>
+                    <h3>暂无闸口状态记录</h3>
+                    <p>点击右上角"新增状态"按钮开始录入数据</p>
+                    <a href="{% url 'gate_status_create' %}" class="btn btn-primary mt-4">
+                        <span>➕</span> 新增第一条闸口状态
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

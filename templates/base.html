@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}鱼梁捕鱼效率研究系统{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🐟</span>
+                    <h1>鱼梁研究系统</h1>
+                </div>
+                <p class="subtitle">传统渔文化数字化保护平台</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                            <span class="nav-icon">📊</span>
+                            <span>仪表盘</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'weir_list' %}" class="nav-item {% if 'weir' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🏛️</span>
+                            <span>鱼梁档案</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'water_level_list' %}" class="nav-item {% if 'water_level' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">💧</span>
+                            <span>水位记录</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'gate_status_list' %}" class="nav-item {% if 'gate' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🚪</span>
+                            <span>闸口状态</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'harvest_list' %}" class="nav-item {% if 'harvest' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🎣</span>
+                            <span>收获记录</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'fish_school_list' %}" class="nav-item {% if 'fish_school' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🐠</span>
+                            <span>鱼群记录</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="nav-section-title">数据报表</div>
+                <ul>
+                    <li>
+                        <a href="{% url 'report_monthly_trend' %}" class="nav-item {% if 'monthly_trend' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">📈</span>
+                            <span>月度趋势</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'report_gate_comparison' %}" class="nav-item {% if 'gate_comparison' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">📊</span>
+                            <span>闸口策略对比</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'report_efficiency' %}" class="nav-item {% if 'efficiency' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🎯</span>
+                            <span>效率估算</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/admin/" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>系统管理</span>
+                </a>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="page-title">{% block page_title %}首页{% endblock %}</h2>
+                </div>
+                <div class="header-right">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </header>
+            
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                        <div class="message message-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+    <script src="{% static 'js/form.validation.js' %}"></script>
+</body>
+</html>

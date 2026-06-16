@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'water_level_list' %}" class="btn btn-secondary">
+        <span>←</span> 返回列表
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                    <div class="message message-error">
+                        请检查以下错误：
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        {{ form.weir.label_tag }}
+                        {{ form.weir }}
+                        {% if form.weir.help_text %}
+                            <div class="form-text">{{ form.weir.help_text }}</div>
+                        {% endif %}
+                        {% if form.weir.errors %}
+                            {% for error in form.weir.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.record_date.label_tag }}
+                        {{ form.record_date }}
+                        {% if form.record_date.help_text %}
+                            <div class="form-text">{{ form.record_date.help_text }}</div>
+                        {% endif %}
+                        {% if form.record_date.errors %}
+                            {% for error in form.record_date.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        {{ form.water_level.label_tag }}
+                        {{ form.water_level }}
+                        {% if form.water_level.help_text %}
+                            <div class="form-text">{{ form.water_level.help_text }}</div>
+                        {% endif %}
+                        {% if form.water_level.errors %}
+                            {% for error in form.water_level.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.flow_rate.label_tag }}
+                        {{ form.flow_rate }}
+                        {% if form.flow_rate.help_text %}
+                            <div class="form-text">{{ form.flow_rate.help_text }}</div>
+                        {% endif %}
+                        {% if form.flow_rate.errors %}
+                            {% for error in form.flow_rate.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.weather.label_tag }}
+                        {{ form.weather }}
+                        {% if form.weather.help_text %}
+                            <div class="form-text">{{ form.weather.help_text }}</div>
+                        {% endif %}
+                        {% if form.weather.errors %}
+                            {% for error in form.weather.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="form-check">
+                        {{ form.is_primary }}
+                        {{ form.is_primary.label_tag }}
+                    </div>
+                    {% if form.is_primary.help_text %}
+                        <div class="form-text">{{ form.is_primary.help_text }}</div>
+                    {% endif %}
+                    {% if form.is_primary.errors %}
+                        {% for error in form.is_primary.errors %}
+                            <div class="form-error">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.notes.label_tag }}
+                    {{ form.notes }}
+                    {% if form.notes.help_text %}
+                        <div class="form-text">{{ form.notes.help_text }}</div>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> 保存
+                    </button>
+                    <a href="{% url 'water_level_list' %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

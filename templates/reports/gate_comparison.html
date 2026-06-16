@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span>🔍</span> 查询
+                </button>
+                <a href="{% url 'report_gate_comparison' %}" class="btn btn-secondary">重置</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">闸口策略对比图</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="gateChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #1e3a5f;"></span>
+                    <span>平均实际收获</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #c9a227;"></span>
+                    <span>平均估算收获</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #27ae60;"></span>
+                    <span>准确率</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">数据明细</h3>
+        </div>
+        <div class="card-body">
+            {% if data_list %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>闸口策略</th>
+                            <th>记录数</th>
+                            <th>平均实际收获(公斤)</th>
+                            <th>平均估算收获(公斤)</th>
+                            <th>准确率(%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in data_list %}
+                            <tr>
+                                <td>
+                                    <span class="badge badge-primary">{{ item.strategy|default:'未设置' }}</span>
+                                </td>
+                                <td>{{ item.count }}</td>
+                                <td>{{ item.avg_actual|default:0 }}</td>
+                                <td>{{ item.avg_estimated|default:0 }}</td>
+                                <td>
+                                    {% if item.accuracy >= 80 %}
+                                        <span class="badge badge-success">{{ item.accuracy|default:'-' }}%</span>
+                                    {% elif item.accuracy >= 60 %}
+                                        <span class="badge badge-warning">{{ item.accuracy|default:'-' }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-error">{{ item.accuracy|default:'-' }}%</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('gateChart').getContext('2d');
+            
+            const labels = {{ chart_labels|safe }};
+            const avgActual = {{ chart_avg_actual|safe }};
+            const avgEstimated = {{ chart_avg_estimated|safe }};
+            const accuracy = {{ chart_accuracy|safe }};
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '平均实际收获',
+                            data: avgActual,
+                            backgroundColor: 'rgba(30, 58, 95, 0.8)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '平均估算收获',
+                            data: avgEstimated,
+                            backgroundColor: 'rgba(201, 162, 39, 0.8)',
+                            borderColor: '#c9a227',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '准确率',
+                            data: accuracy,
+                            backgroundColor: 'rgba(39, 174, 96, 0.8)',
+                            borderColor: '#27ae60',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            titleFont: {
+                                family: "'Noto Sans SC', sans-serif",
+                                size: 14
+                            },
+                            bodyFont: {
+                                family: "'Noto Sans SC', sans-serif",
+                                size: 13
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (context.datasetIndex === 2) {
+                                        return label + ': ' + context.parsed.y + '%';
+                                    }
+                                    return label + ': ' + context.parsed.y + ' 公斤';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return value + ' 公斤';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '收获量(公斤)',
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '准确率(%)',
+                                font: {
+                                    family: "'Noto Sans SC', sans-serif",
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

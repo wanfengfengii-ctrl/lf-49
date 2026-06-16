@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}收获记录 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}收获记录管理{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'harvest_create' %}" class="btn btn-primary">
+        <span>➕</span> 新增记录
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="summary-row">
+        <div class="summary-item">
+            <div class="value">{{ total_weight|default:"0" }} kg</div>
+            <div class="label">总重量</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_quantity|default:"0" }} 条</div>
+            <div class="label">总数量</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">筛选</button>
+                <a href="{% url 'harvest_list' %}" class="btn btn-secondary">重置</a>
+            </form>
+
+            {% if harvests %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>鱼梁</th>
+                                <th>鱼种</th>
+                                <th>重量(公斤)</th>
+                                <th>数量</th>
+                                <th>记录人</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for harvest in harvests %}
+                                <tr>
+                                    <td>{{ harvest.record_date|date:"Y-m-d" }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ harvest.weir.code }}</span>
+                                        {{ harvest.weir.name }}
+                                    </td>
+                                    <td>{{ harvest.fish_species }}</td>
+                                    <td>{{ harvest.weight }}</td>
+                                    <td>{{ harvest.quantity }}</td>
+                                    <td>{{ harvest.recorder|default:"-" }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="#" class="btn btn-sm btn-primary">编辑</a>
+                                            <a href="#" class="btn btn-sm btn-danger">删除</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎣</div>
+                    <h3>暂无收获记录</h3>
+                    <p>点击右上角"新增记录"按钮开始录入数据</p>
+                    <a href="{% url 'harvest_create' %}" class="btn btn-primary mt-4">
+                        <span>➕</span> 新增第一条收获记录
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

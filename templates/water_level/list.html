@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}水位记录 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}水位记录管理{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'water_level_create' %}" class="btn btn-primary">
+        <span>➕</span> 新增记录
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% if total_weight or total_quantity %}
+        <div class="summary-row">
+            <div class="summary-item">
+                <div class="value">{{ total_weight|default:"0" }} kg</div>
+                <div class="label">总重量</div>
+            </div>
+            <div class="summary-item">
+                <div class="value">{{ total_quantity|default:"0" }} 条</div>
+                <div class="label">总数量</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">筛选</button>
+                <a href="{% url 'water_level_list' %}" class="btn btn-secondary">重置</a>
+            </form>
+
+            {% if water_levels %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>鱼梁</th>
+                                <th>水位(米)</th>
+                                <th>流速(m/s)</th>
+                                <th>天气</th>
+                                <th>主记录</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in water_levels %}
+                                <tr>
+                                    <td>{{ record.record_date|date:"Y-m-d" }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ record.weir.code }}</span>
+                                        {{ record.weir.name }}
+                                    </td>
+                                    <td>{{ record.water_level }}</td>
+                                    <td>{{ record.flow_rate }}</td>
+                                    <td>{{ record.weather }}</td>
+                                    <td>
+                                        {% if record.is_primary %}
+                                            <span class="badge badge-success">是</span>
+                                        {% else %}
+                                            <span class="badge badge-info">否</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="{% url 'water_level_edit' record.pk %}" class="btn btn-sm btn-primary">编辑</a>
+                                            <a href="#" class="btn btn-sm btn-danger">删除</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">💧</div>
+                    <h3>暂无水位记录</h3>
+                    <p>点击右上角"新增记录"按钮开始录入数据</p>
+                    <a href="{% url 'water_level_create' %}" class="btn btn-primary mt-4">
+                        <span>➕</span> 新增第一条水位记录
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

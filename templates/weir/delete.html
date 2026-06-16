@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}删除鱼梁 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}删除确认{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'weir_list' %}" class="btn btn-secondary">
+        <span>←</span> 返回列表
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <div class="delete-confirm">
+                <div class="icon">⚠️</div>
+                <h3>确定要删除该鱼梁档案吗？</h3>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">此操作将永久删除以下鱼梁档案及其所有关联数据（水位记录、闸口状态、收获记录、鱼群记录等），请谨慎操作。</p>
+                
+                <div class="detail-grid" style="margin-bottom: 24px;">
+                    <div class="detail-item">
+                        <div class="label">鱼梁编号</div>
+                        <div class="value">{{ weir.code }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">鱼梁名称</div>
+                        <div class="value">{{ weir.name }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">所在位置</div>
+                        <div class="value">{{ weir.location }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">建造年代</div>
+                        <div class="value">{{ weir.build_year|default:"-" }}</div>
+                    </div>
+                </div>
+
+                <div class="summary-row" style="margin-bottom: 24px;">
+                    <div class="summary-item">
+                        <div class="value">{{ weir.water_levels.count }}</div>
+                        <div class="label">水位记录</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">{{ weir.gate_statuses.count }}</div>
+                        <div class="label">闸口状态</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">{{ weir.harvest_records.count }}</div>
+                        <div class="label">收获记录</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">{{ weir.fish_schools.count }}</div>
+                        <div class="label">鱼群记录</div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="btn-group">
+                        <a href="{% url 'weir_list' %}" class="btn btn-secondary btn-lg">
+                            <span>✕</span> 取消
+                        </a>
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <span>🗑️</span> 确认删除
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" class="filter-form">
+                <div class="form-group">
+                    {{ filter_form.weir.label_tag }}
+                    {{ filter_form.weir }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="form-group">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span>🔍</span> 查询
+                </button>
+                <a href="{% url 'report_efficiency' %}" class="btn btn-secondary">重置</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="summary-row">
+        <div class="summary-item">
+            <div class="value">{{ total_estimated|default:0 }} 公斤</div>
+            <div class="label">总估算收获</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_actual|default:0 }} 公斤</div>
+            <div class="label">总实际收获</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ avg_accuracy|default:0 }}%</div>
+            <div class="label">平均准确率</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">效率估算明细</h3>
+            <div class="header-right">
+                <form method="POST" action="{% url 'recalculate_all_estimates' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-accent">
+                        <span>🔄</span> 重新计算
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if estimates %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>鱼梁</th>
+                            <th>估算值(公斤)</th>
+                            <th>实际值(公斤)</th>
+                            <th>准确率(%)</th>
+                            <th>闸口策略</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in estimates %}
+                            <tr>
+                                <td>{{ item.estimate_date|date:"Y-m-d" }}</td>
+                                <td>{{ item.weir.code }} - {{ item.weir.name }}</td>
+                                <td>{{ item.estimated_weight|default:0 }}</td>
+                                <td>{{ item.actual_weight|default:0 }}</td>
+                                <td>
+                                    {% if item.accuracy >= 80 %}
+                                        <span class="badge badge-success">{{ item.accuracy|default:'-' }}%</span>
+                                    {% elif item.accuracy >= 60 %}
+                                        <span class="badge badge-warning">{{ item.accuracy|default:'-' }}%</span>
+                                    {% elif item.accuracy %}
+                                        <span class="badge badge-error">{{ item.accuracy }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-info">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.gate_strategy %}
+                                        <span class="badge badge-accent">{{ item.gate_strategy }}</span>
+                                    {% else %}
+                                        <span class="badge badge-muted">未设置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if is_paginated %}
+                    <div class="pagination">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}{% if filter_params %}&{{ filter_params }}{% endif %}" class="page-link">上一页</a>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <span class="page-link active">{{ num }}</span>
+                            {% else %}
+                                <a href="?page={{ num }}{% if filter_params %}&{{ filter_params }}{% endif %}" class="page-link">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if filter_params %}&{{ filter_params }}{% endif %}" class="page-link">下一页</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试，或点击"重新计算"生成估算数据</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

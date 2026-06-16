@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}鱼梁档案 - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}鱼梁档案管理{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'weir_create' %}" class="btn btn-primary">
+        <span>➕</span> 新增鱼梁
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            {% if weirs %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>鱼梁编号</th>
+                                <th>鱼梁名称</th>
+                                <th>所在位置</th>
+                                <th>建造年代</th>
+                                <th>闸口数量</th>
+                                <th>水位记录</th>
+                                <th>收获记录</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for weir in weirs %}
+                                <tr>
+                                    <td>
+                                        <span class="badge badge-primary">{{ weir.code }}</span>
+                                    </td>
+                                    <td><strong>{{ weir.name }}</strong></td>
+                                    <td>{{ weir.location }}</td>
+                                    <td>{{ weir.build_year|default:"-" }}</td>
+                                    <td>{{ weir.gate_count }} 个</td>
+                                    <td>{{ weir.water_level_count }} 条</td>
+                                    <td>{{ weir.harvest_count }} 条</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="{% url 'weir_detail' weir.pk %}" class="btn btn-sm btn-secondary">查看</a>
+                                            <a href="{% url 'weir_edit' weir.pk %}" class="btn btn-sm btn-primary">编辑</a>
+                                            <a href="{% url 'weir_delete' weir.pk %}" class="btn btn-sm btn-danger">删除</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏛️</div>
+                    <h3>暂无鱼梁档案</h3>
+                    <p>点击右上角"新增鱼梁"按钮开始录入数据</p>
+                    <a href="{% url 'weir_create' %}" class="btn btn-primary mt-4">
+                        <span>➕</span> 新增第一条鱼梁档案
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

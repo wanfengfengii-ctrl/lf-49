@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ weir.name }} - 鱼梁详情{% endblock %}
+{% block page_title %}{{ weir.code }} - {{ weir.name }}{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'weir_edit' weir.pk %}" class="btn btn-primary">
+        <span>✏️</span> 编辑
+    </a>
+    <a href="{% url 'recalculate_estimates' weir.pk %}" class="btn btn-accent">
+        <span>🔄</span> 重新计算估算
+    </a>
+    <a href="{% url 'weir_list' %}" class="btn btn-secondary">
+        <span>←</span> 返回列表
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="label">鱼梁编号</div>
+            <div class="value">{{ weir.code }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">鱼梁名称</div>
+            <div class="value">{{ weir.name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">所在位置</div>
+            <div class="value">{{ weir.location }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">建造年代</div>
+            <div class="value">{{ weir.build_year|default:"-" }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">闸口数量</div>
+            <div class="value">{{ weir.gate_count }} 个</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">创建时间</div>
+            <div class="value">{{ weir.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+    </div>
+
+    {% if weir.structure_desc %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">📝 结构描述</h3>
+            </div>
+            <div class="card-body">
+                {{ weir.structure_desc|linebreaks }}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="quick-actions">
+        <a href="{% url 'water_level_create' %}?weir={{ weir.pk }}" class="quick-action-card">
+            <div class="quick-action-icon">💧</div>
+            <div class="quick-action-content">
+                <h3>录入水位</h3>
+                <p>为该鱼梁添加水位记录</p>
+            </div>
+        </a>
+        <a href="{% url 'gate_status_create' %}?weir={{ weir.pk }}" class="quick-action-card">
+            <div class="quick-action-icon">🚪</div>
+            <div class="quick-action-content">
+                <h3>闸口状态</h3>
+                <p>记录闸口状态变更</p>
+            </div>
+        </a>
+        <a href="{% url 'harvest_create' %}?weir={{ weir.pk }}" class="quick-action-card">
+            <div class="quick-action-icon">🎣</div>
+            <div class="quick-action-content">
+                <h3>录入收获</h3>
+                <p>记录实际捕获量</p>
+            </div>
+        </a>
+        <a href="{% url 'fish_school_create' %}?weir={{ weir.pk }}" class="quick-action-card">
+            <div class="quick-action-icon">🐠</div>
+            <div class="quick-action-content">
+                <h3>鱼群记录</h3>
+                <p>记录鱼群经过观测</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🕐 历史数据时间线</h3>
+        </div>
+        <div class="card-body">
+            {% if timeline %}
+                <div class="timeline">
+                    {% for item in timeline %}
+                        <div class="timeline-item {{ item.type }}">
+                            <div class="timeline-date">{{ item.date|date:"Y-m-d" }}</div>
+                            <div class="timeline-content">
+                                {% if item.type == 'water' %}
+                                    <span class="badge badge-info">水位</span>
+                                    <strong>{{ item.data.water_level }}m</strong> / {{ item.data.flow_rate }}m/s - {{ item.data.weather }}
+                                {% elif item.type == 'harvest' %}
+                                    <span class="badge badge-success">收获</span>
+                                    <strong>{{ item.data.fish_species }}</strong> - {{ item.data.weight }}kg / {{ item.data.quantity }}尾
+                                {% elif item.type == 'gate' %}
+                                    <span class="badge badge-warning">闸口</span>
+                                    <strong>{{ item.data.gate_number }}</strong> - 
+                                    {% if item.data.status == 'open' %}开启{% else %}关闭{% endif %}
+                                    {% if item.data.operator %} by {{ item.data.operator }}{% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h3>暂无历史记录</h3>
+                    <p>使用上方快捷操作开始录入数据</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">💧 近期水位记录</h3>
+                <a href="{% url 'water_level_list' %}?weir={{ weir.pk }}" class="btn btn-sm btn-secondary">查看全部</a>
+            </div>
+            <div class="card-body">
+                {% if water_levels %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>水位</th>
+                                <th>流速</th>
+                                <th>天气</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wl in water_levels %}
+                                <tr>
+                                    <td>{{ wl.record_date|date:"Y-m-d" }}</td>
+                                    <td>{{ wl.water_level }}m</td>
+                                    <td>{{ wl.flow_rate }}m/s</td>
+                                    <td>{{ wl.weather }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💧</div>
+                        <p>暂无水位记录</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🎯 收获估算记录</h3>
+                <a href="{% url 'report_efficiency' %}?weir={{ weir.pk }}" class="btn btn-sm btn-secondary">查看全部</a>
+            </div>
+            <div class="card-body">
+                {% if estimates %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>估算值</th>
+                                <th>实际值</th>
+                                <th>准确率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for est in estimates %}
+                                <tr>
+                                    <td>{{ est.estimate_date|date:"Y-m-d" }}</td>
+                                    <td>{{ est.estimated_weight }}kg</td>
+                                    <td>{{ est.actual_weight }}kg</td>
+                                    <td>
+                                        {% if est.accuracy %}
+                                            <span class="badge {% if est.accuracy >= 80 %}badge-success{% elif est.accuracy >= 60 %}badge-warning{% else %}badge-error{% endif %}">
+                                                {{ est.accuracy }}%
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <p>暂无估算记录</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,25 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.dashboard_index, name='dashboard'),
+    path('weirs/', views.weir_list, name='weir_list'),
+    path('weirs/create/', views.weir_create, name='weir_create'),
+    path('weirs/<int:pk>/', views.weir_detail, name='weir_detail'),
+    path('weirs/<int:pk>/edit/', views.weir_edit, name='weir_edit'),
+    path('weirs/<int:pk>/delete/', views.weir_delete, name='weir_delete'),
+    path('water-levels/', views.water_level_list, name='water_level_list'),
+    path('water-levels/create/', views.water_level_create, name='water_level_create'),
+    path('water-levels/<int:pk>/edit/', views.water_level_edit, name='water_level_edit'),
+    path('gates/', views.gate_status_list, name='gate_status_list'),
+    path('gates/create/', views.gate_status_create, name='gate_status_create'),
+    path('harvests/', views.harvest_list, name='harvest_list'),
+    path('harvests/create/', views.harvest_create, name='harvest_create'),
+    path('fish-schools/', views.fish_school_list, name='fish_school_list'),
+    path('fish-schools/create/', views.fish_school_create, name='fish_school_create'),
+    path('reports/monthly-trend/', views.report_monthly_trend, name='report_monthly_trend'),
+    path('reports/gate-comparison/', views.report_gate_comparison, name='report_gate_comparison'),
+    path('reports/efficiency/', views.report_efficiency, name='report_efficiency'),
+    path('recalculate-estimates/', views.recalculate_estimates_view, name='recalculate_all_estimates'),
+    path('recalculate-estimates/<int:weir_id>/', views.recalculate_estimates_view, name='recalculate_estimates'),
+]

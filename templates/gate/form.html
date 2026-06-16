@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block header_actions %}
+    <a href="{% url 'gate_status_list' %}" class="btn btn-secondary">
+        <span>←</span> 返回列表
+    </a>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" novalidate>
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                    <div class="message message-error">
+                        请检查以下错误：
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        {{ form.weir.label_tag }}
+                        {{ form.weir }}
+                        {% if form.weir.help_text %}
+                            <div class="form-text">{{ form.weir.help_text }}</div>
+                        {% endif %}
+                        {% if form.weir.errors %}
+                            {% for error in form.weir.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.gate_number.label_tag }}
+                        {{ form.gate_number }}
+                        {% if form.gate_number.help_text %}
+                            <div class="form-text">{{ form.gate_number.help_text }}</div>
+                        {% endif %}
+                        {% if form.gate_number.errors %}
+                            {% for error in form.gate_number.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.status.label_tag }}
+                        {{ form.status }}
+                        {% if form.status.help_text %}
+                            <div class="form-text">{{ form.status.help_text }}</div>
+                        {% endif %}
+                        {% if form.status.errors %}
+                            {% for error in form.status.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        {{ form.change_time.label_tag }}
+                        {{ form.change_time }}
+                        {% if form.change_time.help_text %}
+                            <div class="form-text">{{ form.change_time.help_text }}</div>
+                        {% endif %}
+                        {% if form.change_time.errors %}
+                            {% for error in form.change_time.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.operator.label_tag }}
+                        {{ form.operator }}
+                        {% if form.operator.help_text %}
+                            <div class="form-text">{{ form.operator.help_text }}</div>
+                        {% endif %}
+                        {% if form.operator.errors %}
+                            {% for error in form.operator.errors %}
+                                <div class="form-error">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    {{ form.reason.label_tag }}
+                    {{ form.reason }}
+                    {% if form.reason.help_text %}
+                        <div class="form-text">{{ form.reason.help_text }}</div>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> 保存
+                    </button>
+                    <a href="{% url 'gate_status_list' %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
