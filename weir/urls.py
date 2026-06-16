@@ -30,6 +30,7 @@ urlpatterns = [
     path('reports/comprehensive-analysis/', views.report_comprehensive_analysis, name='report_comprehensive_analysis'),
     path('reports/strategy-comparison/', views.report_strategy_comparison, name='report_strategy_comparison'),
     path('reports/simulation/', views.report_simulation, name='report_simulation'),
+    path('reports/fish-migration/', views.report_fish_migration, name='report_fish_migration'),
     path('recalculate-estimates/', views.recalculate_estimates_view, name='recalculate_all_estimates'),
     path('recalculate-estimates/<int:weir_id>/', views.recalculate_estimates_view, name='recalculate_estimates'),
 ]

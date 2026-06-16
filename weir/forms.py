@@ -244,6 +244,65 @@ SIMULATION_MODE_CHOICES = [
 ]
 
 
+class FishMigrationFilterForm(forms.Form):
+    weir = forms.ModelChoiceField(
+        queryset=Weir.objects.all(),
+        required=False,
+        label='选择鱼梁',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    season = forms.MultipleChoiceField(
+        choices=SEASON_CHOICES,
+        required=False,
+        label='季节',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    months = forms.MultipleChoiceField(
+        choices=MONTH_CHOICES,
+        required=False,
+        label='月份',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    start_date = forms.DateField(
+        required=False,
+        label='开始日期',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='结束日期',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    water_level_min = forms.FloatField(
+        required=False,
+        label='最低水位(米)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    water_level_max = forms.FloatField(
+        required=False,
+        label='最高水位(米)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    weather = forms.MultipleChoiceField(
+        choices=WEATHER_CHOICES,
+        required=False,
+        label='天气状况',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+    fish_species = forms.MultipleChoiceField(
+        choices=[],
+        required=False,
+        label='鱼种',
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox-inline'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .services.fish_migration_analyzer import get_available_fish_species
+        species_list = get_available_fish_species()
+        self.fields['fish_species'].choices = [(s, s) for s in species_list]
+
+
 class SimulationForm(forms.Form):
     weir = forms.ModelChoiceField(
         queryset=Weir.objects.all(),

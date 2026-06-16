@@ -7,7 +7,8 @@ import json
 from .models import Weir, WaterLevel, GateStatus, HarvestRecord, FishSchool, HarvestEstimate
 from .forms import (
     WeirForm, WaterLevelForm, GateStatusForm, HarvestRecordForm,
-    FishSchoolForm, ReportFilterForm, ComprehensiveFilterForm, SimulationForm
+    FishSchoolForm, ReportFilterForm, ComprehensiveFilterForm,
+    SimulationForm, FishMigrationFilterForm
 )
 from .services.harvest_estimator import (
     get_monthly_trend, get_gate_strategy_comparison,
@@ -20,6 +21,10 @@ from .services.harvest_estimator import (
     get_traditional_fishing_calendar, get_strategy_heatmap_data,
     get_multi_dimensional_comparison, get_comprehensive_strategy_analysis,
     reconstruct_historical_operation, get_historical_operation_patterns
+)
+from .services.fish_migration_analyzer import (
+    get_comprehensive_migration_analysis,
+    get_available_fish_species
 )
 
 
@@ -812,3 +817,120 @@ def report_simulation(request):
         'ms_confidence': json.dumps(ms_confidence),
     }
     return render(request, 'reports/simulation.html', context)
+
+
+def report_fish_migration(request):
+    form = FishMigrationFilterForm(request.GET or None)
+    filters = {}
+
+    if form.is_valid():
+        filters = {
+            'weir': form.cleaned_data.get('weir'),
+            'start_date': form.cleaned_data.get('start_date'),
+            'end_date': form.cleaned_data.get('end_date'),
+            'season': form.cleaned_data.get('season'),
+            'months': form.cleaned_data.get('months'),
+            'water_level_min': form.cleaned_data.get('water_level_min'),
+            'water_level_max': form.cleaned_data.get('water_level_max'),
+            'weather': form.cleaned_data.get('weather'),
+            'fish_species': form.cleaned_data.get('fish_species'),
+        }
+
+    analysis = get_comprehensive_migration_analysis(filters)
+
+    monthly_trend = analysis['monthly_trend']
+    month_labels = [d['month'] for d in monthly_trend]
+    month_fish = [d['total_fish_estimated'] for d in monthly_trend]
+    month_harvest = [d['harvest_weight'] for d in monthly_trend]
+    month_conversion = [d['conversion_rate'] for d in monthly_trend]
+
+    seasonal = analysis['seasonal_analysis']
+    season_labels = [d['season_name'] for d in seasonal]
+    season_fish = [d['total_fish_estimated'] for d in seasonal]
+    season_harvest = [d['harvest_weight'] for d in seasonal]
+    season_conversion = [d['conversion_rate'] for d in seasonal]
+
+    water_level = analysis['water_level_analysis']
+    water_labels = [d['interval'] for d in water_level]
+    water_fish = [d['total_fish_estimated'] for d in water_level]
+    water_harvest = [d['harvest_weight'] for d in water_level]
+    water_conversion = [d['conversion_rate'] for d in water_level]
+
+    weather = analysis['weather_analysis']
+    weather_labels = [d['weather'] for d in weather]
+    weather_fish = [d['total_fish_estimated'] for d in weather]
+    weather_harvest = [d['harvest_weight'] for d in weather]
+    weather_conversion = [d['conversion_rate'] for d in weather]
+
+    species = analysis['species_analysis'][:10]
+    species_labels = [d['species'] for d in species]
+    species_fish = [d['total_fish_estimated'] for d in species]
+    species_harvest = [d['harvest_weight'] for d in species]
+
+    key_factors = analysis['key_factors']
+    factor_labels = [f['factor'][:15] + '...' if len(f['factor']) > 15 else f['factor'] for f in key_factors]
+    factor_scores = [f['score'] for f in key_factors]
+    factor_category_colors = []
+    color_map = {
+        '生态关联': 'rgba(46, 125, 50, 0.7)',
+        '水文因子': 'rgba(30, 58, 95, 0.7)',
+        '季节因子': 'rgba(201, 162, 39, 0.7)',
+        '天气因子': 'rgba(156, 39, 176, 0.7)',
+    }
+    for f in key_factors:
+        factor_category_colors.append(color_map.get(f['category'], 'rgba(100, 100, 100, 0.7)'))
+
+    correlations = analysis['correlations']
+    radar_labels = [
+        '鱼群-收获关联', '水位-鱼群关联', '流速-鱼群关联',
+        '水位-收获关联', '流速-收获关联'
+    ]
+    radar_values = [
+        abs(correlations['fish_harvest_correlation'] or 0) * 100,
+        abs(correlations['water_level_fish_correlation'] or 0) * 100,
+        abs(correlations['flow_rate_fish_correlation'] or 0) * 100,
+        abs(correlations['water_level_harvest_correlation'] or 0) * 100,
+        abs(correlations['flow_rate_harvest_correlation'] or 0) * 100,
+    ]
+
+    has_data = analysis['has_data']
+
+    context = {
+        'title': '鱼梁生态响应与鱼汛预警分析',
+        'filter_form': form,
+        'has_data': has_data,
+        'fish_summary': analysis['fish_summary'],
+        'harvest_summary': analysis['harvest_summary'],
+        'correlations': correlations,
+        'key_factors': key_factors,
+        'warnings': analysis['warnings'],
+        'seasonal_analysis': seasonal,
+        'water_level_analysis': water_level,
+        'weather_analysis': weather,
+        'species_analysis': species,
+        'month_labels': json.dumps(month_labels),
+        'month_fish': json.dumps(month_fish),
+        'month_harvest': json.dumps(month_harvest),
+        'month_conversion': json.dumps(month_conversion),
+        'season_labels': json.dumps(season_labels),
+        'season_fish': json.dumps(season_fish),
+        'season_harvest': json.dumps(season_harvest),
+        'season_conversion': json.dumps(season_conversion),
+        'water_labels': json.dumps(water_labels),
+        'water_fish': json.dumps(water_fish),
+        'water_harvest': json.dumps(water_harvest),
+        'water_conversion': json.dumps(water_conversion),
+        'weather_labels': json.dumps(weather_labels),
+        'weather_fish': json.dumps(weather_fish),
+        'weather_harvest': json.dumps(weather_harvest),
+        'weather_conversion': json.dumps(weather_conversion),
+        'species_labels': json.dumps(species_labels),
+        'species_fish': json.dumps(species_fish),
+        'species_harvest': json.dumps(species_harvest),
+        'factor_labels': json.dumps(factor_labels),
+        'factor_scores': json.dumps(factor_scores),
+        'factor_category_colors': json.dumps(factor_category_colors),
+        'radar_labels': json.dumps(radar_labels),
+        'radar_values': json.dumps(radar_values),
+    }
+    return render(request, 'reports/fish_migration_analysis.html', context)

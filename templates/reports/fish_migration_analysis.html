@@ -1,0 +1,980 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - 鱼梁捕鱼效率研究系统{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🔬 多维度筛选条件</h3>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="filter-form comprehensive-filter">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>{{ filter_form.weir.label }}</label>
+                        {{ filter_form.weir }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ filter_form.start_date.label }}</label>
+                        {{ filter_form.start_date }}
+                    </div>
+                    <div class="filter-group">
+                        <label>{{ filter_form.end_date.label }}</label>
+                        {{ filter_form.end_date }}
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>⏰ 时间维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.season.label }}</label>
+                            <div class="checkbox-inline-container">
+                                {% for checkbox in filter_form.season %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.months.label }}</label>
+                            <div class="checkbox-inline-container months-grid">
+                                {% for checkbox in filter_form.months %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>💧 水文维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>{{ filter_form.water_level_min.label }}</label>
+                            {{ filter_form.water_level_min }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.water_level_max.label }}</label>
+                            {{ filter_form.water_level_max }}
+                        </div>
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.weather.label }}</label>
+                            <div class="checkbox-inline-container weather-grid">
+                                {% for checkbox in filter_form.weather %}
+                                    <label class="checkbox-item">
+                                        {{ checkbox.tag }}
+                                        <span>{{ checkbox.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4>🐟 鱼种维度</h4>
+                    <div class="filter-row">
+                        <div class="filter-group checkbox-group">
+                            <label>{{ filter_form.fish_species.label }}</label>
+                            <div class="checkbox-inline-container">
+                                {% if filter_form.fish_species.field.choices %}
+                                    {% for checkbox in filter_form.fish_species %}
+                                        <label class="checkbox-item">
+                                            {{ checkbox.tag }}
+                                            <span>{{ checkbox.choice_label }}</span>
+                                        </label>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color: #999; font-size: 13px; padding: 8px;">暂无可选鱼种，请先添加鱼群或收获记录</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>🐟</span> 开始鱼汛分析
+                    </button>
+                    <a href="{% url 'report_fish_migration' %}" class="btn btn-secondary">重置条件</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if warnings %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚨 鱼汛预警与智能提示</h3>
+        </div>
+        <div class="card-body">
+            <div class="card-grid">
+                {% for warning in warnings %}
+                <div class="warning-card warning-{{ warning.level }}">
+                    <div class="warning-icon">{{ warning.icon }}</div>
+                    <div class="warning-content">
+                        <div class="warning-type">
+                            <span class="badge badge-{{ warning.level }}">{{ warning.type }}</span>
+                        </div>
+                        <h4 class="warning-title">{{ warning.title }}</h4>
+                        <p class="warning-message">{{ warning.message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🐠</div>
+            <div class="stat-value">{{ fish_summary.total_fish_count|default:0 }}</div>
+            <div class="stat-label">鱼群预估总数量（尾）</div>
+        </div>
+        <div class="stat-card accent">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value">{{ fish_summary.school_record_count|default:0 }}</div>
+            <div class="stat-label">鱼群经过记录次数</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-icon">🎣</div>
+            <div class="stat-value">{{ harvest_summary.total_weight|default:0 }}</div>
+            <div class="stat-label">实际收获总重量（公斤）</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-icon">🐟</div>
+            <div class="stat-value">{{ harvest_summary.total_quantity|default:0 }}</div>
+            <div class="stat-label">实际收获总数量（尾）</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 相关性分析雷达图</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-row">
+                <div class="chart-item">
+                    <h5>生态与水文因子关联强度</h5>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-item">
+                    <h5>📈 相关系数解读</h5>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>关联维度</th>
+                                <th>相关系数</th>
+                                <th>强度判断</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>鱼群数量 ↔ 收获量</td>
+                                <td><strong>{{ correlations.fish_harvest_correlation|default:"-" }}</strong></td>
+                                <td>
+                                    <span class="badge badge-info" id="fishHarvestInterpret">数据不足</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>水位 ↔ 鱼群数量</td>
+                                <td><strong>{{ correlations.water_level_fish_correlation|default:"-" }}</strong></td>
+                                <td>
+                                    <span class="badge badge-info" id="waterFishInterpret">数据不足</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>流速 ↔ 鱼群数量</td>
+                                <td><strong>{{ correlations.flow_rate_fish_correlation|default:"-" }}</strong></td>
+                                <td>
+                                    <span class="badge badge-info" id="flowFishInterpret">数据不足</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>水位 ↔ 收获量</td>
+                                <td><strong>{{ correlations.water_level_harvest_correlation|default:"-" }}</strong></td>
+                                <td>
+                                    <span class="badge badge-info" id="waterHarvestInterpret">数据不足</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>流速 ↔ 收获量</td>
+                                <td><strong>{{ correlations.flow_rate_harvest_correlation|default:"-" }}</strong></td>
+                                <td>
+                                    <span class="badge badge-info" id="flowHarvestInterpret">数据不足</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 16px; font-size: 13px; color: #666;">
+                        💡 <strong>说明：</strong>相关系数范围为 -1 到 1。绝对值越接近 1 表示关联越强，正值表示正相关（一方增加另一方也增加），负值表示负相关。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if has_data %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📈 月度鱼汛活跃趋势图</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="monthlyTrendChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #2e7d32;"></span>
+                    <span>鱼群预估数量（尾）</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #1e3a5f;"></span>
+                    <span>实际收获重量（公斤）</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #c9a227;"></span>
+                    <span>捕获转化率（%）</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🌿 季节鱼汛对比</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="seasonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">💧 水位区间鱼汛分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="waterLevelChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🌤️ 天气状况鱼汛分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="weatherChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🐟 鱼种分布分析</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="speciesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🏆 关键影响因子排名</h3>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="factorRankingChart"></canvas>
+            </div>
+            {% if key_factors %}
+            <table class="data-table" style="margin-top: 24px;">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>影响因子</th>
+                        <th>类别</th>
+                        <th>影响评分</th>
+                        <th>相关系数</th>
+                        <th>解读</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factor in key_factors %}
+                    <tr>
+                        <td>
+                            {% if forloop.counter == 1 %}
+                                <span class="badge badge-gold">🥇 第1名</span>
+                            {% elif forloop.counter == 2 %}
+                                <span class="badge badge-silver">🥈 第2名</span>
+                            {% elif forloop.counter == 3 %}
+                                <span class="badge badge-bronze">🥉 第3名</span>
+                            {% else %}
+                                <span class="badge badge-secondary">第{{ forloop.counter }}名</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ factor.factor }}</strong></td>
+                        <td>
+                            <span class="badge badge-primary">{{ factor.category }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-accent">{{ factor.score }}</span>
+                        </td>
+                        <td>{{ factor.correlation|default:"-" }}</td>
+                        <td style="font-size: 13px;">
+                            {{ factor.interpretation }}
+                            <br><small style="color: #888;">{{ factor.description }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 季节鱼汛分析明细</h3>
+        </div>
+        <div class="card-body">
+            {% if seasonal_analysis %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>季节</th>
+                            <th>鱼群记录数</th>
+                            <th>预估鱼群总数</th>
+                            <th>平均鱼群规模</th>
+                            <th>收获重量(公斤)</th>
+                            <th>捕获转化率</th>
+                            <th>平均水位(米)</th>
+                            <th>平均流速(m/s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in seasonal_analysis %}
+                            <tr>
+                                <td><strong>{{ item.season_name }}</strong></td>
+                                <td>{{ item.fish_school_count }}</td>
+                                <td>{{ item.total_fish_estimated }}</td>
+                                <td>{{ item.avg_school_size|default:0 }}</td>
+                                <td>{{ item.harvest_weight }}</td>
+                                <td>
+                                    <span class="badge badge-success">{{ item.conversion_rate }}%</span>
+                                </td>
+                                <td>{{ item.avg_water_level|default:"-" }}</td>
+                                <td>{{ item.avg_flow_rate|default:"-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">💧 水位区间分析明细</h3>
+        </div>
+        <div class="card-body">
+            {% if water_level_analysis %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>水位区间</th>
+                            <th>鱼群记录数</th>
+                            <th>预估鱼群总数</th>
+                            <th>平均鱼群规模</th>
+                            <th>收获重量(公斤)</th>
+                            <th>捕获转化率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in water_level_analysis %}
+                            <tr>
+                                <td><strong>{{ item.interval }}</strong></td>
+                                <td>{{ item.fish_school_count }}</td>
+                                <td>{{ item.total_fish_estimated }}</td>
+                                <td>{{ item.avg_school_size|default:0 }}</td>
+                                <td>{{ item.harvest_weight }}</td>
+                                <td>
+                                    <span class="badge badge-primary">{{ item.conversion_rate }}%</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">💧</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🐟 鱼种分析明细</h3>
+        </div>
+        <div class="card-body">
+            {% if species_analysis %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>鱼种</th>
+                                <th>鱼群记录数</th>
+                                <th>预估鱼群总数</th>
+                                <th>平均鱼群规模</th>
+                                <th>收获重量(公斤)</th>
+                                <th>收获数量(尾)</th>
+                                <th>捕获转化率</th>
+                                <th>逆流次数</th>
+                                <th>顺流次数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in species_analysis %}
+                                <tr>
+                                    <td><strong>{{ item.species }}</strong></td>
+                                    <td>{{ item.fish_school_count }}</td>
+                                    <td>{{ item.total_fish_estimated }}</td>
+                                    <td>{{ item.avg_school_size|default:0 }}</td>
+                                    <td>{{ item.harvest_weight }}</td>
+                                    <td>{{ item.harvest_quantity }}</td>
+                                    <td>
+                                        <span class="badge badge-accent">{{ item.conversion_rate }}%</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">⬆️ {{ item.upstream_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-warning">⬇️ {{ item.downstream_count }}</span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🐟</div>
+                    <h3>暂无数据</h3>
+                    <p>请调整筛选条件后重试</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h3>未找到符合条件的数据</h3>
+                <p>请尝试调整筛选条件，扩大搜索范围。系统需要鱼群记录和收获记录才能进行鱼汛关联分析。</p>
+                <div style="margin-top: 20px;">
+                    <a href="{% url 'fish_school_create' %}" class="btn btn-primary">
+                        <span>🐠</span> 添加鱼群记录
+                    </a>
+                    <a href="{% url 'harvest_create' %}" class="btn btn-accent" style="margin-left: 12px;">
+                        <span>🎣</span> 添加收获记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    <style>
+        .warning-card {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            border-radius: 12px;
+            background: white;
+            border-left: 5px solid;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+        }
+        .warning-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .warning-card.warning-success {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.05) 0%, white 100%);
+        }
+        .warning-card.warning-warning {
+            border-left-color: #f39c12;
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.08) 0%, white 100%);
+        }
+        .warning-card.warning-error {
+            border-left-color: #e74c3c;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.05) 0%, white 100%);
+        }
+        .warning-card.warning-info {
+            border-left-color: #3498db;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, white 100%);
+        }
+        .warning-icon {
+            font-size: 42px;
+            flex-shrink: 0;
+        }
+        .warning-content {
+            flex: 1;
+        }
+        .warning-type {
+            margin-bottom: 8px;
+        }
+        .warning-title {
+            font-size: 16px;
+            margin: 0 0 8px;
+            color: var(--primary-dark);
+        }
+        .warning-message {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.7;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasData = {{ has_data|yesno:"true,false" }};
+
+            const correlations = {
+                fish_harvest: {{ correlations.fish_harvest_correlation|default:"null" }},
+                water_fish: {{ correlations.water_level_fish_correlation|default:"null" }},
+                flow_fish: {{ correlations.flow_rate_fish_correlation|default:"null" }},
+                water_harvest: {{ correlations.water_level_harvest_correlation|default:"null" }},
+                flow_harvest: {{ correlations.flow_rate_harvest_correlation|default:"null" }},
+            };
+
+            function interpretCorrelation(corr) {
+                if (corr === null || corr === undefined) return '数据不足';
+                const abs = Math.abs(corr);
+                const dir = corr > 0 ? '正相关' : '负相关';
+                if (abs >= 0.8) return '极强' + dir;
+                if (abs >= 0.6) return '强' + dir;
+                if (abs >= 0.4) return '中等' + dir;
+                if (abs >= 0.2) return '弱' + dir;
+                return '几乎无相关';
+            }
+
+            function getBadgeClass(corr) {
+                if (corr === null || corr === undefined) return 'badge-info';
+                const abs = Math.abs(corr);
+                if (abs >= 0.6) return 'badge-success';
+                if (abs >= 0.3) return 'badge-warning';
+                return 'badge-secondary';
+            }
+
+            function updateInterpret(id, value) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = interpretCorrelation(value);
+                    el.className = 'badge ' + getBadgeClass(value);
+                }
+            }
+
+            updateInterpret('fishHarvestInterpret', correlations.fish_harvest);
+            updateInterpret('waterFishInterpret', correlations.water_fish);
+            updateInterpret('flowFishInterpret', correlations.flow_fish);
+            updateInterpret('waterHarvestInterpret', correlations.water_harvest);
+            updateInterpret('flowHarvestInterpret', correlations.flow_harvest);
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                        titleFont: { family: "'Noto Sans SC', sans-serif", size: 14 },
+                        bodyFont: { family: "'Noto Sans SC', sans-serif", size: 13 },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                    }
+                }
+            };
+
+            new Chart(document.getElementById('radarChart'), {
+                type: 'radar',
+                data: {
+                    labels: {{ radar_labels|safe }},
+                    datasets: [{
+                        label: '关联强度(%)',
+                        data: {{ radar_values|safe }},
+                        backgroundColor: 'rgba(201, 162, 39, 0.2)',
+                        borderColor: '#c9a227',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#c9a227',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            callbacks: {
+                                label: function(context) {
+                                    return '关联强度: ' + context.parsed.r.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 10 },
+                                stepSize: 20
+                            },
+                            grid: { color: 'rgba(0, 0, 0, 0.08)' },
+                            angleLines: { color: 'rgba(0, 0, 0, 0.08)' },
+                            pointLabels: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!hasData) return;
+
+            new Chart(document.getElementById('monthlyTrendChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ month_labels|safe }},
+                    datasets: [
+                        {
+                            label: '鱼群预估数量（尾）',
+                            data: {{ month_fish|safe }},
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '实际收获重量（公斤）',
+                            data: {{ month_harvest|safe }},
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '捕获转化率（%）',
+                            data: {{ month_conversion|safe }},
+                            type: 'line',
+                            borderColor: '#c9a227',
+                            backgroundColor: 'rgba(201, 162, 39, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: '#c9a227',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: false },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '数量 / 重量',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'Noto Sans SC', sans-serif", size: 11 },
+                                callback: function(value) { return value + '%'; }
+                            },
+                            title: {
+                                display: true,
+                                text: '转化率(%)',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('seasonChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ season_labels|safe }},
+                    datasets: [
+                        {
+                            label: '鱼群预估数量',
+                            data: {{ season_fish|safe }},
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        },
+                        {
+                            label: '收获重量',
+                            data: {{ season_harvest|safe }},
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('waterLevelChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ water_labels|safe }},
+                    datasets: [
+                        {
+                            label: '鱼群预估数量',
+                            data: {{ water_fish|safe }},
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        },
+                        {
+                            label: '收获重量',
+                            data: {{ water_harvest|safe }},
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('weatherChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ weather_labels|safe }},
+                    datasets: [
+                        {
+                            label: '鱼群预估数量',
+                            data: {{ weather_fish|safe }},
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        },
+                        {
+                            label: '收获重量',
+                            data: {{ weather_harvest|safe }},
+                            backgroundColor: 'rgba(30, 58, 95, 0.7)',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        ...chartOptions.scales,
+                        x: {
+                            ...chartOptions.scales.x,
+                            ticks: {
+                                ...chartOptions.scales.x.ticks,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('speciesChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ species_labels|safe }},
+                    datasets: [
+                        {
+                            label: '鱼群预估数量',
+                            data: {{ species_fish|safe }},
+                            backgroundColor: 'rgba(46, 125, 50, 0.7)',
+                            borderColor: '#2e7d32',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        },
+                        {
+                            label: '收获重量',
+                            data: {{ species_harvest|safe }},
+                            backgroundColor: 'rgba(201, 162, 39, 0.7)',
+                            borderColor: '#c9a227',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('factorRankingChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ factor_labels|safe }},
+                    datasets: [{
+                        label: '影响评分',
+                        data: {{ factor_scores|safe }},
+                        backgroundColor: {{ factor_category_colors|safe }},
+                        borderColor: {{ factor_category_colors|safe }}.map(c => c.replace('0.7', '1')),
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                generateLabels: function(chart) {
+                                    const categories = [
+                                        { name: '生态关联', color: 'rgba(46, 125, 50, 0.7)' },
+                                        { name: '水文因子', color: 'rgba(30, 58, 95, 0.7)' },
+                                        { name: '季节因子', color: 'rgba(201, 162, 39, 0.7)' },
+                                        { name: '天气因子', color: 'rgba(156, 39, 176, 0.7)' },
+                                    ];
+                                    return categories.map(c => ({
+                                        text: c.name,
+                                        fillStyle: c.color,
+                                        strokeStyle: c.color,
+                                        hidden: false
+                                    }));
+                                },
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 58, 95, 0.9)',
+                            callbacks: {
+                                label: function(context) {
+                                    return '影响评分: ' + context.parsed.x;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } },
+                            title: {
+                                display: true,
+                                text: '影响评分',
+                                font: { family: "'Noto Sans SC', sans-serif", size: 12 }
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { font: { family: "'Noto Sans SC', sans-serif", size: 11 } }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

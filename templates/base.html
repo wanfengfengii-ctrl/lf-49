@@ -102,6 +102,12 @@
                             <span>历史作业推演</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{% url 'report_fish_migration' %}" class="nav-item {% if 'fish_migration' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-icon">🐟</span>
+                            <span>鱼汛预警分析</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
             
