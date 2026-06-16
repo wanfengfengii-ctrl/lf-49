@@ -283,6 +283,16 @@ class FishMigrationFilterForm(forms.Form):
         label='最高水位(米)',
         widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
     )
+    flow_rate_min = forms.FloatField(
+        required=False,
+        label='最低流速(m/s)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
+    flow_rate_max = forms.FloatField(
+        required=False,
+        label='最高流速(m/s)',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'})
+    )
     weather = forms.MultipleChoiceField(
         choices=WEATHER_CHOICES,
         required=False,

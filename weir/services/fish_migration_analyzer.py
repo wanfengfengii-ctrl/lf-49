@@ -31,6 +31,24 @@ def apply_fish_migration_filters(fish_queryset, filters):
         fish_queryset = fish_queryset.filter(record_date__month__in=[int(m) for m in filters['months']])
     if filters.get('fish_species'):
         fish_queryset = fish_queryset.filter(fish_type__in=filters['fish_species'])
+    has_water_filter = (
+        filters.get('water_level_min') is not None or
+        filters.get('water_level_max') is not None or
+        filters.get('flow_rate_min') is not None or
+        filters.get('flow_rate_max') is not None or
+        filters.get('weather')
+    )
+    if has_water_filter:
+        water_queryset = WaterLevel.objects.filter(is_primary=True)
+        water_queryset = apply_water_level_filters(water_queryset, filters)
+        valid_dates = list(water_queryset.values_list('weir_id', 'record_date'))
+        if valid_dates:
+            q_objects = Q()
+            for weir_id, record_date in valid_dates:
+                q_objects |= Q(weir_id=weir_id, record_date=record_date)
+            fish_queryset = fish_queryset.filter(q_objects)
+        else:
+            fish_queryset = fish_queryset.none()
     return fish_queryset
 
 
@@ -58,6 +76,24 @@ def apply_harvest_filters(harvest_queryset, filters):
         harvest_queryset = harvest_queryset.filter(record_date__month__in=[int(m) for m in filters['months']])
     if filters.get('fish_species'):
         harvest_queryset = harvest_queryset.filter(fish_species__in=filters['fish_species'])
+    has_water_filter = (
+        filters.get('water_level_min') is not None or
+        filters.get('water_level_max') is not None or
+        filters.get('flow_rate_min') is not None or
+        filters.get('flow_rate_max') is not None or
+        filters.get('weather')
+    )
+    if has_water_filter:
+        water_queryset = WaterLevel.objects.filter(is_primary=True)
+        water_queryset = apply_water_level_filters(water_queryset, filters)
+        valid_dates = list(water_queryset.values_list('weir_id', 'record_date'))
+        if valid_dates:
+            q_objects = Q()
+            for weir_id, record_date in valid_dates:
+                q_objects |= Q(weir_id=weir_id, record_date=record_date)
+            harvest_queryset = harvest_queryset.filter(q_objects)
+        else:
+            harvest_queryset = harvest_queryset.none()
     return harvest_queryset
 
 

@@ -832,6 +832,8 @@ def report_fish_migration(request):
             'months': form.cleaned_data.get('months'),
             'water_level_min': form.cleaned_data.get('water_level_min'),
             'water_level_max': form.cleaned_data.get('water_level_max'),
+            'flow_rate_min': form.cleaned_data.get('flow_rate_min'),
+            'flow_rate_max': form.cleaned_data.get('flow_rate_max'),
             'weather': form.cleaned_data.get('weather'),
             'fish_species': form.cleaned_data.get('fish_species'),
         }

@@ -64,6 +64,16 @@
                             <label>{{ filter_form.water_level_max.label }}</label>
                             {{ filter_form.water_level_max }}
                         </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.flow_rate_min.label }}</label>
+                            {{ filter_form.flow_rate_min }}
+                        </div>
+                        <div class="filter-group">
+                            <label>{{ filter_form.flow_rate_max.label }}</label>
+                            {{ filter_form.flow_rate_max }}
+                        </div>
+                    </div>
+                    <div class="filter-row" style="margin-top: 16px;">
                         <div class="filter-group checkbox-group">
                             <label>{{ filter_form.weather.label }}</label>
                             <div class="checkbox-inline-container weather-grid">
@@ -108,6 +118,8 @@
             </form>
         </div>
     </div>
+
+    {% if has_data %}
 
     {% if warnings %}
     <div class="card">
@@ -224,7 +236,6 @@
         </div>
     </div>
 
-    {% if has_data %}
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">📈 月度鱼汛活跃趋势图</h3>
@@ -611,6 +622,8 @@
             updateInterpret('waterHarvestInterpret', correlations.water_harvest);
             updateInterpret('flowHarvestInterpret', correlations.flow_harvest);
 
+            if (!hasData) return;
+
             const chartOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -686,8 +699,6 @@
                     }
                 }
             });
-
-            if (!hasData) return;
 
             new Chart(document.getElementById('monthlyTrendChart'), {
                 type: 'bar',
