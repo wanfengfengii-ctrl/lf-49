@@ -148,6 +148,7 @@ def weir_delete(request, pk):
 
 
 def water_level_list(request):
+    from django.db.models import Avg, Count
     form = ReportFilterForm(request.GET or None)
     water_levels = WaterLevel.objects.select_related('weir').all().order_by('-record_date', '-created_at')
 
@@ -159,7 +160,19 @@ def water_level_list(request):
         if form.cleaned_data['end_date']:
             water_levels = water_levels.filter(record_date__lte=form.cleaned_data['end_date'])
 
-    context = {'water_levels': water_levels, 'filter_form': form}
+    stats = water_levels.aggregate(
+        avg_water_level=Avg('water_level'),
+        avg_flow_rate=Avg('flow_rate'),
+        total_records=Count('id')
+    )
+
+    context = {
+        'water_levels': water_levels,
+        'filter_form': form,
+        'avg_water_level': round(stats['avg_water_level'] or 0, 2),
+        'avg_flow_rate': round(stats['avg_flow_rate'] or 0, 2),
+        'total_records': stats['total_records'] or 0,
+    }
     return render(request, 'water_level/list.html', context)
 
 
@@ -590,10 +603,13 @@ def report_comprehensive_analysis(request):
     for d in multi_dim_data:
         multi_dim_category_colors.append(color_map.get(d['category'], 'rgba(100, 100, 100, 0.7)'))
 
+    has_data = summary.get('record_count', 0) > 0
+
     context = {
         'title': '综合筛选分析',
         'filter_form': form,
         'summary': summary,
+        'has_data': has_data,
         'seasonal_data': seasonal_data,
         'water_level_data': water_level_data,
         'flow_rate_data': flow_rate_data,

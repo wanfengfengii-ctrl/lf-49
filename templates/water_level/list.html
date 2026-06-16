@@ -10,18 +10,20 @@
 {% endblock %}
 
 {% block content %}
-    {% if total_weight or total_quantity %}
-        <div class="summary-row">
-            <div class="summary-item">
-                <div class="value">{{ total_weight|default:"0" }} kg</div>
-                <div class="label">总重量</div>
-            </div>
-            <div class="summary-item">
-                <div class="value">{{ total_quantity|default:"0" }} 条</div>
-                <div class="label">总数量</div>
-            </div>
+    <div class="summary-row">
+        <div class="summary-item">
+            <div class="value">{{ avg_water_level }} m</div>
+            <div class="label">平均水位</div>
         </div>
-    {% endif %}
+        <div class="summary-item">
+            <div class="value">{{ avg_flow_rate }} m/s</div>
+            <div class="label">平均流速</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_records }} 条</div>
+            <div class="label">记录总数</div>
+        </div>
+    </div>
 
     <div class="card">
         <div class="card-body">

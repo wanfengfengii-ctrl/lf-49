@@ -129,6 +129,7 @@
         </div>
     </div>
 
+    {% if has_data %}
     <div class="card-grid">
         <div class="card">
             <div class="card-header">
@@ -195,6 +196,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="card">
         <div class="card-header">
@@ -240,6 +242,7 @@
         </div>
     </div>
 
+    {% if has_data %}
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">水位区间分析明细</h3>
@@ -327,11 +330,31 @@
             {% endif %}
         </div>
     </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <h3>未找到符合条件的数据</h3>
+                <p>请尝试调整筛选条件，扩大搜索范围</p>
+                <a href="{% url 'report_comprehensive_analysis' %}" class="btn btn-primary mt-4">
+                    <span>🔄</span> 重置筛选条件
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 {% endblock %}
 
 {% block extra_js %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const hasData = {{ has_data|yesno:"true,false" }};
+            
+            if (!hasData) {
+                return;
+            }
+
             const chartOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
